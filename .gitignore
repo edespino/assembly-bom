@@ -1,0 +1,8 @@
+# Ignore cloned repositories
+parts/
+
+# Ignore stage directories
+stage/
+
+# Ignore logs directories
+logs/
