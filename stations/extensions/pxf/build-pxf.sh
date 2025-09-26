@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_NAME="$(basename "$0")"
 
 # Load shared functions
-COMMON_SH="${SCRIPT_DIR}/../../lib/common.sh"
+COMMON_SH="${SCRIPT_DIR}/../../../lib/common.sh"
 if [ -f "${COMMON_SH}" ]; then
   # shellcheck disable=SC1090
   source "${COMMON_SH}"
@@ -42,7 +42,7 @@ fi
 cd "$PXF_DIR"
 
 # Load Cloudberry environment
-[ -f "${SCRIPT_DIR}/../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../config/cloudberry-env-loader.sh"
+[ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
 if ! source_cloudberry_env /usr/local/cloudberry; then
   echo "[build-pxf] ERROR: Failed to load Cloudberry environment"
   exit 1

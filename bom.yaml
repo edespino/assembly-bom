@@ -65,7 +65,7 @@ products:
       extensions:
         - name: pxf
           url: git@github.com:apache/cloudberry-pxf.git
-          branch: upstream
+          branch: main
           configure_flags: []
           steps:
             - clone
