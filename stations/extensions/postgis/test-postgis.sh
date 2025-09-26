@@ -181,36 +181,100 @@ else
   exit 1
 fi
 
-# Test PostGIS extensions availability
-log "Testing PostGIS extension availability"
+# Test all PostGIS extensions availability
+log "Testing all PostGIS extensions availability"
 psql -v ON_ERROR_STOP=1 -d template1 -c "
--- Test extension creation and cleanup
+-- Test core PostGIS extension
 CREATE EXTENSION IF NOT EXISTS postgis;
 SELECT COUNT(*) as postgis_functions FROM pg_proc WHERE pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND prokind = 'f' AND proname LIKE 'st_%';
 
--- Test optional extensions
+-- Test PostGIS raster extension
 DO \$\$
 BEGIN
-    CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
-    RAISE NOTICE 'fuzzystrmatch extension available';
+    CREATE EXTENSION IF NOT EXISTS postgis_raster;
+    RAISE NOTICE '✅ postgis_raster extension available';
+    SELECT COUNT(*) as raster_functions FROM pg_proc WHERE pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND prokind = 'f' AND proname LIKE 'st_r%';
 EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'fuzzystrmatch extension not available: %', SQLERRM;
+    RAISE NOTICE '⚠️  postgis_raster extension not available: %', SQLERRM;
 END;
 \$\$;
 
+-- Test PostGIS topology extension
+DO \$\$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;
+    RAISE NOTICE '✅ postgis_topology extension available';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '⚠️  postgis_topology extension not available: %', SQLERRM;
+END;
+\$\$;
+
+-- Test PostGIS SFCGAL extension (3D geometry support)
+DO \$\$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS postgis_sfcgal;
+    RAISE NOTICE '✅ postgis_sfcgal extension available';
+    SELECT COUNT(*) as sfcgal_functions FROM pg_proc WHERE pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') AND prokind = 'f' AND proname LIKE 'st_3d%';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '⚠️  postgis_sfcgal extension not available: %', SQLERRM;
+END;
+\$\$;
+
+-- Test PostGIS Tiger Geocoder extension
+DO \$\$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;
+    RAISE NOTICE '✅ postgis_tiger_geocoder extension available';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '⚠️  postgis_tiger_geocoder extension not available: %', SQLERRM;
+END;
+\$\$;
+
+-- Test address standardizer extension
 DO \$\$
 BEGIN
     CREATE EXTENSION IF NOT EXISTS address_standardizer;
-    RAISE NOTICE 'address_standardizer extension available';
+    RAISE NOTICE '✅ address_standardizer extension available';
 EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'address_standardizer extension not available: %', SQLERRM;
+    RAISE NOTICE '⚠️  address_standardizer extension not available: %', SQLERRM;
 END;
 \$\$;
 
--- Cleanup
-DROP EXTENSION IF EXISTS address_standardizer;
-DROP EXTENSION IF EXISTS fuzzystrmatch;
+-- Test fuzzy string matching extension (dependency for tiger geocoder)
+DO \$\$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+    RAISE NOTICE '✅ fuzzystrmatch extension available';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '⚠️  fuzzystrmatch extension not available: %', SQLERRM;
+END;
+\$\$;
+
+-- Cleanup all extensions (order matters due to dependencies)
+DROP EXTENSION IF EXISTS postgis_tiger_geocoder CASCADE;
+DROP EXTENSION IF EXISTS address_standardizer CASCADE;
+DROP EXTENSION IF EXISTS postgis_sfcgal CASCADE;
+DROP EXTENSION IF EXISTS postgis_topology CASCADE;
+DROP EXTENSION IF EXISTS postgis_raster CASCADE;
+DROP EXTENSION IF EXISTS fuzzystrmatch CASCADE;
 DROP EXTENSION IF EXISTS postgis CASCADE;
+" 2>&1 | tee -a "$TEST_LOG"
+
+# List all installed PostGIS extensions
+log "Listing all installed PostGIS extensions"
+psql -d template1 -c "
+SELECT
+    name,
+    default_version,
+    installed_version,
+    CASE WHEN installed_version IS NOT NULL THEN 'INSTALLED' ELSE 'AVAILABLE' END as status,
+    comment
+FROM pg_available_extensions
+WHERE name LIKE '%postgis%'
+   OR name LIKE '%address%'
+   OR name LIKE '%tiger%'
+   OR name IN ('fuzzystrmatch')
+ORDER BY name;
 " 2>&1 | tee -a "$TEST_LOG"
 
 if [ ${PIPESTATUS[0]} -eq 0 ]; then

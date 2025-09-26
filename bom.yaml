@@ -70,7 +70,7 @@ products:
           steps:
             - clone
             - build
-            - install-test
+            - install
 
         - name: postgis
           url: git@github.com:cloudberry-contrib/postgis.git

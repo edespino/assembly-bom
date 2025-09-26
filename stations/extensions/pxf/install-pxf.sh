@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/install-test-pxf.sh
-# Purpose  : Install and test the 'cloudberry-pxf' extension.
+# File     : stations/extensions/pxf/install-pxf.sh
+# Purpose  : Install the 'pxf' extension and list installed extensions.
 # Inputs   :
-#   - NAME           : name of the component (default: cloudberry-pxf)
+#   - NAME           : name of the component (default: pxf)
 #   - INSTALL_PREFIX : not used, but accepted for compatibility
 # --------------------------------------------------------------------
 
@@ -26,17 +26,17 @@ fi
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
 
-NAME="${NAME:-cloudberry-pxf}"
+NAME="${NAME:-pxf}"
 PXF_DIR="$PARTS_DIR/$NAME"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLOUDBERRY_DEMO_ENV="$PARTS_DIR/cloudberry/gpAux/gpdemo/gpdemo-env.sh"
 
-section "install and test: $NAME"
+section "install: $NAME"
 start_time=$(date +%s)
 
 # Validate source directory
 if [[ ! -f "$PXF_DIR/Makefile" ]]; then
-  echo "[install-test-pxf] ERROR: No Makefile found in $PXF_DIR"
+  echo "[install-pxf] ERROR: No Makefile found in $PXF_DIR"
   exit 1
 fi
 cd "$PXF_DIR"
@@ -44,14 +44,14 @@ cd "$PXF_DIR"
 # Load Cloudberry environment
 [ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
 if ! source_cloudberry_env /usr/local/cloudberry; then
-  echo "[install-test-pxf] ERROR: Failed to load Cloudberry environment"
+  echo "[install-pxf] ERROR: Failed to load Cloudberry environment"
   exit 1
 fi
 
 if [[ -f "$CLOUDBERRY_DEMO_ENV" ]]; then
   source "$CLOUDBERRY_DEMO_ENV"
 else
-  echo "[install-test-pxf] ERROR: gpdemo-env.sh not found at $CLOUDBERRY_DEMO_ENV"
+  echo "[install-pxf] ERROR: gpdemo-env.sh not found at $CLOUDBERRY_DEMO_ENV"
   exit 1
 fi
 
@@ -85,4 +85,4 @@ else
   echo "⚠️ psql not found in PATH, skipping PXF extension check"
 fi
 
-section_complete "install-test-pxf" "$start_time"
+section_complete "install: $NAME" "$start_time"

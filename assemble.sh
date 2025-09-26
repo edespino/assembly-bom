@@ -324,25 +324,80 @@ echo ""
 echo "🔍 Postgres Extensions"
 echo ""
 
-awk '
-/[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
-  if (!found) {
-    printf "%-20s | %s\n", "Extension", "Version"
-    print "---------------------+---------"
-    found = 1
+# Check for extension marker files from different components
+POSTGIS_MARKER="/tmp/claude_postgis_extensions.marker"
+PXF_MARKER="/tmp/claude_pxf_extensions.marker"
+COMBINED_MARKER="/tmp/claude_all_extensions.marker"
+
+# Combine all extension marker files
+rm -f "$COMBINED_MARKER"
+for marker in "$POSTGIS_MARKER" "$PXF_MARKER"; do
+  if [ -f "$marker" ]; then
+    cat "$marker" >> "$COMBINED_MARKER"
+  fi
+done
+
+if [ -f "$COMBINED_MARKER" ]; then
+  awk '
+  /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
+    if (!found) {
+      printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
+      print "-------------------------------+-----------------+-------------------+-----------"
+      found = 1
+    }
+    # Process data rows
+    while ((getline) > 0) {
+      if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
+      if (/^-+\+/) continue
+      if (/[[:alnum:]_]+[[:space:]]*\|/) {
+        split($0, a, "|")
+        name = a[1]; version = a[2]; installed = a[3]; status = a[4]
+        gsub(/^ +| +$/, "", name)
+        gsub(/^ +| +$/, "", version)
+        gsub(/^ +| +$/, "", installed)
+        gsub(/^ +| +$/, "", status)
+        printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
+      }
+    }
   }
-  getline; getline
-  split($0, a, "|")
-  name = a[1]; version = a[2]
-  gsub(/^ +| +$/, "", name)
-  gsub(/^ +| +$/, "", version)
-  printf "%-20s | %s\n", name, version
-}
-END {
-  if (!found) {
-    print "No extensions found."
+  END {
+    if (!found) {
+      print "No extensions found."
+    }
+  }' "$COMBINED_MARKER"
+
+  # Clean up marker files
+  rm -f "$POSTGIS_MARKER" "$PXF_MARKER" "$COMBINED_MARKER"
+else
+  # Fallback to old method if marker file doesn't exist
+  awk '
+  /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
+    if (!found) {
+      printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
+      print "-------------------------------+-----------------+-------------------+-----------"
+      found = 1
+    }
+    # Process data rows
+    while ((getline) > 0) {
+      if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
+      if (/^-+\+/) continue
+      if (/[[:alnum:]_]+[[:space:]]*\|/) {
+        split($0, a, "|")
+        name = a[1]; version = a[2]; installed = a[3]; status = a[4]
+        gsub(/^ +| +$/, "", name)
+        gsub(/^ +| +$/, "", version)
+        gsub(/^ +| +$/, "", installed)
+        gsub(/^ +| +$/, "", status)
+        printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
+      }
+    }
   }
-}' "$LOG_FILE"
+  END {
+    if (!found) {
+      print "No extensions found."
+    }
+  }' "$LOG_FILE"
+fi
 
 exit 0
 
