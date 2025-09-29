@@ -77,13 +77,48 @@ else
   log "Skipping contrib install — directory not found."
 fi
 
-# Post-install check - Load Cloudberry environment
-[ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
-if source_cloudberry_env "$INSTALL_PREFIX"; then
-  postgres --version
-  postgres --gp-version
+# Install PyGreSQL for system python3
+log "Installing PyGreSQL for system python3..."
+if [[ -f "$INSTALL_PREFIX/cloudberry-env.sh" ]]; then
+  # Source the cloudberry environment to get pg_config in PATH
+  source "$INSTALL_PREFIX/cloudberry-env.sh"
+
+  # Install PyGreSQL using system python3 with cloudberry pg_config
+  pygresql_cmd=(sudo env PATH="$PATH" pip3 install PyGreSQL)
+  log "Running PyGreSQL install:"
+  printf '  %s\n' "${pygresql_cmd[@]}"
+  "${pygresql_cmd[@]}"
+
+  log "PyGreSQL installation completed successfully"
+
+  # Display versions of Python modules
+  log ""
+  log "🐍 Python Module Versions:"
+  log "  ├─ pg:     $(python3 -c "import pg; print(pg.__version__)" 2>/dev/null || echo "❌ NOT FOUND")"
+  log "  ├─ psutil: $(python3 -c "import psutil; print(psutil.__version__)" 2>/dev/null || echo "❌ NOT FOUND")"
+  log "  └─ yaml:   $(python3 -c "import yaml; print(yaml.__version__)" 2>/dev/null || echo "❌ NOT FOUND")"
+  log ""
 else
-  log "ERROR: Failed to load Cloudberry environment from $INSTALL_PREFIX"
+  log "WARNING: cloudberry-env.sh not found at $INSTALL_PREFIX, skipping PyGreSQL install"
+fi
+
+# Post-install check - Load Cloudberry environment
+CLOUDBERRY_ENV_LOADER="${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
+# Fallback to absolute path if relative doesn't work
+if [ ! -f "$CLOUDBERRY_ENV_LOADER" ]; then
+  CLOUDBERRY_ENV_LOADER="/home/cbadmin/assembly-bom/config/cloudberry-env-loader.sh"
+fi
+if [ -f "$CLOUDBERRY_ENV_LOADER" ]; then
+  source "$CLOUDBERRY_ENV_LOADER"
+  if source_cloudberry_env "$INSTALL_PREFIX"; then
+    postgres --version
+    postgres --gp-version
+  else
+    log "ERROR: Failed to load Cloudberry environment from $INSTALL_PREFIX"
+    exit 1
+  fi
+else
+  log "ERROR: cloudberry-env-loader.sh not found at $CLOUDBERRY_ENV_LOADER"
   exit 1
 fi
 
