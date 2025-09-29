@@ -24,6 +24,16 @@ else
   exit 1
 fi
 
+# Load Cloudberry-specific functions
+CLOUDBERRY_COMMON="${SCRIPT_DIR}/common-cloudberry.sh"
+if [ -f "${CLOUDBERRY_COMMON}" ]; then
+  # shellcheck disable=SC1090
+  source "${CLOUDBERRY_COMMON}"
+else
+  echo "[$SCRIPT_NAME] Missing library: ${CLOUDBERRY_COMMON}" >&2
+  exit 1
+fi
+
 # Load shared environment
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && . config/env.sh
@@ -52,24 +62,8 @@ else
   CONFIGURE_DEBUG_OPTS=""
 fi
 
-# Optional Xerces-C setup
-if [[ -d /opt/xerces-c ]]; then
-  log "Using Xerces-C from /opt/xerces-c"
-  sudo chmod a+w /usr/local
-
-  mkdir -p "${INSTALL_PREFIX}/lib"
-  cp -P /opt/xerces-c/lib/libxerces-c.so \
-        /opt/xerces-c/lib/libxerces-c-3.*.so \
-        "${INSTALL_PREFIX}/lib" 2>/dev/null || true
-
-  export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-  xerces_include="--with-includes=/opt/xerces-c/include"
-  xerces_libs="--with-libraries=${INSTALL_PREFIX}/lib"
-else
-  log "Using system-installed Xerces-C"
-  xerces_include=""
-  xerces_libs=""
-fi
+# Setup Xerces-C environment
+setup_xerces
 
 # Final configure command
 CONFIGURE_CMD="./configure --prefix=${INSTALL_PREFIX} \

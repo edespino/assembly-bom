@@ -24,6 +24,16 @@ else
   exit 1
 fi
 
+# Load Cloudberry-specific functions
+CLOUDBERRY_COMMON="${SCRIPT_DIR}/common-cloudberry.sh"
+if [ -f "${CLOUDBERRY_COMMON}" ]; then
+  # shellcheck disable=SC1090
+  source "${CLOUDBERRY_COMMON}"
+else
+  echo "[$SCRIPT_NAME] Missing library: ${CLOUDBERRY_COMMON}" >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
 
@@ -48,10 +58,8 @@ if [[ -d "$INSTALL_PREFIX" ]]; then
     sudo chmod a+w "$INSTALL_PREFIX"
 fi
 
-# Set LD_LIBRARY_PATH if needed
-if [[ -d /opt/xerces-c ]]; then
-  export LD_LIBRARY_PATH="$INSTALL_PREFIX/lib:${LD_LIBRARY_PATH:-}"
-fi
+# Setup Xerces-C environment
+setup_xerces
 
 # Core install
 install_cmd=(make -j"$(nproc)" install --directory=".")

@@ -23,6 +23,16 @@ else
   exit 1
 fi
 
+# Load Cloudberry-specific functions
+CLOUDBERRY_COMMON="${SCRIPT_DIR}/common-cloudberry.sh"
+if [ -f "${CLOUDBERRY_COMMON}" ]; then
+  # shellcheck disable=SC1090
+  source "${CLOUDBERRY_COMMON}"
+else
+  echo "[$SCRIPT_NAME] Missing library: ${CLOUDBERRY_COMMON}" >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 [ -f config/env.sh ] && source config/env.sh
 
@@ -45,10 +55,8 @@ cd "$BUILD_DIR"
 # Print version if available
 [[ -f VERSION ]] && log "Build version: $(<VERSION)"
 
-# Update LD_LIBRARY_PATH if using local Xerces-C
-if [[ -d /opt/xerces-c ]]; then
-  export LD_LIBRARY_PATH="${INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-fi
+# Setup Xerces-C environment
+setup_xerces
 
 # Build core
 build_cmd=(make -j"$(nproc)" --directory=".")
