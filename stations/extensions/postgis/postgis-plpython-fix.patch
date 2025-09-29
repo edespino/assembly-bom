@@ -1,0 +1,10 @@
+--- a/regress/run_test.pl	2025-09-25 19:12:00.000000000 +0000
++++ b/regress/run_test.pl	2025-09-25 19:12:00.000000000 +0000
+@@ -1344,7 +1344,7 @@
+ ##################################################################
+ sub create_db
+ {
+-	my $createcmd = "createdb --encoding=UTF-8 --template=template0 --lc-collate=C $DB > $REGRESS_LOG";
++	my $createcmd = "createdb --encoding=UTF-8 --template=template1 $DB > $REGRESS_LOG";
+ 	return system($createcmd);
+ }

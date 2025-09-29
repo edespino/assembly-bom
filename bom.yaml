@@ -1,0 +1,151 @@
+---
+products:
+  cloudberry:
+    components:
+      core:
+        - name: cloudberry
+          url: https://github.com/apache/cloudberry.git
+          branch: main
+          configure_flags: |
+            --disable-external-fts
+            --enable-debug
+            --enable-cassert
+            --enable-debug-extensions
+            --enable-gpcloud
+            --enable-gpfdist
+            --enable-ic-proxy
+            --enable-mapreduce
+            --enable-orafce
+            --enable-orca
+            --enable-pax
+            --enable-pxf
+            --enable-tap-tests
+            --with-gssapi
+            --with-ldap
+            --with-libbz2
+            --with-libcurl
+            --with-libxml
+            --with-lz4
+            --with-openssl
+            --with-pam
+            --with-perl
+            --with-pgport=5432
+            --with-python
+            --with-ssl=openssl
+            --with-uuid=e2fs
+            --with-zstd
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - create-demo-cluster
+            - unittest
+            - installcheck
+          test_configs:
+            - name: "default"
+              pgoptions: "-c optimizer=on"
+              target: "installcheck"
+              description: "Installcheck with optimizer enabled"
+            - name: "ic-good-opt-off"
+              pgoptions: "-c optimizer=off"
+              target: "installcheck"
+              description: "Installcheck with optimizer disabled"
+            - name: "pax-ic-good-opt-off:pax-test"
+              pgoptions: "-c optimizer=off -c default_table_access_method=pax"
+              target: "pax-test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage - test Installcheck with optimizer enabled"
+            - name: "pax-ic-good-opt-off:regress_test"
+              pgoptions: "-c optimizer=off -c default_table_access_method=pax"
+              target: "regress_test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage - test Installcheck with optimizer enabled"
+
+      extensions:
+        - name: pxf
+          url: https://github.com/apache/cloudberry-pxf.git
+          branch: main
+          configure_flags: []
+          steps:
+            - clone
+            - build
+            - install
+
+        - name: postgis
+          url: https://github.com/cloudberry-contrib/postgis.git
+          branch: main
+          configure_flags: |
+            --with-pgconfig="${GPHOME}"/bin/pg_config
+            --with-raster
+            --without-topology
+            --with-gdalconfig=/usr/local/gdal-3.5.3/bin/gdal-config
+            --with-sfcgal=/usr/local/sfcgal-1.4.1/bin/sfcgal-config
+            --with-geosconfig=/usr/local/geos-3.11.0/bin/geos-config
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - test
+            - crash-test
+
+      utilities:
+
+      dependencies:
+        - name: cgal
+          url: https://github.com/CGAL/cgal/releases/download/v5.6.1/CGAL-5.6.1.tar.xz
+          branch: "v5.6.1"
+          configure_flags: |
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_INSTALL_PREFIX=/usr/local/cgal-5.6.1
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+
+        - name: sfcgal
+          url: https://gitlab.com/sfcgal/SFCGAL/-/archive/v1.4.1/SFCGAL-v1.4.1.tar.gz
+          branch: "v1.4.1"
+          configure_flags: |
+            -DCMAKE_INSTALL_PREFIX=/usr/local/sfcgal-1.4.1
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+
+        - name: geos
+          url: https://download.osgeo.org/geos/geos-3.11.0.tar.bz2
+          branch: "3.11.0"
+          configure_flags: |
+            -DCMAKE_INSTALL_PREFIX=/usr/local/geos-3.11.0
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+
+        - name: proj
+          url: https://download.osgeo.org/proj/proj-6.0.0.tar.gz
+          branch: "6.0.0"
+          configure_flags: |
+            --prefix=/usr/local/proj6
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+
+        - name: gdal
+          url: https://download.osgeo.org/gdal/3.5.3/gdal-3.5.3.tar.gz
+          branch: "3.5.3"
+          configure_flags: |
+            --prefix=/usr/local/gdal-3.5.3
+            --with-proj=/usr/local/proj6
+          steps:
+            - clone
+            - configure
+            - build
+            - install
