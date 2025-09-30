@@ -42,6 +42,9 @@ products:
             - create-demo-cluster
             - unittest
             - installcheck
+            - gpstart
+            - gpstop
+            - gprestart
           test_configs:
             - name: "default"
               pgoptions: "-c optimizer=on"
