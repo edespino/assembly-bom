@@ -21,7 +21,7 @@ Assembly BOM is a Software Bill of Materials (SBOM) development tool for the Clo
 ```
 
 ### Code Analysis and Modification Guidelines
-- **Station Scripts**: Follow naming pattern `stations/{layer}/{component}/{step}-{component}.sh`
+- **Station Scripts**: Follow naming pattern `stations/{layer}/{component}/{step}.sh`
 - **Generic Fallbacks**: Located in `stations/generic/` for common build patterns
 - **Environment Setup**: Check `config/env.sh` for shared variables and paths
 - **Component Definition**: All components defined in `bom.yaml` with steps, flags, and dependencies
@@ -111,7 +111,7 @@ PostGIS has known stability issues. The crash testing framework provides systema
 - `stations/extensions/postgis/test-postgis.sh` - Comprehensive PostGIS testing
 
 ### Station Script Discovery Pattern
-1. Look for `stations/{layer}/{component}/{step}-{component}.sh`
+1. Look for `stations/{layer}/{component}/{step}.sh`
 2. Fallback to `stations/generic/{step}.sh`
 3. Import `stations/generic/common.sh` for logging functions
 

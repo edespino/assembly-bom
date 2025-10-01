@@ -282,7 +282,7 @@ for LAYER in dependencies core extensions components; do
     COMPONENT_START=$(date +%s)
 
     for STEP in "${STEPS[@]}"; do
-      SCRIPT="stations/${LAYER}/${NAME}/${STEP}-${NAME}.sh"
+      SCRIPT="stations/${LAYER}/${NAME}/${STEP}.sh"
       FALLBACK="stations/generic/${STEP}.sh"
       echo "[assemble] --> Step: $STEP"
       STEP_START=$(date +%s)

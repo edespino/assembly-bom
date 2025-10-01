@@ -12,21 +12,6 @@ source "$(dirname "$0")/../../generic/common.sh"
 # Required environment variables from assembly framework
 : "${NAME:?NAME environment variable must be set (should be 'postgis')}"
 
-# Load Cloudberry environment for database access
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLOUDBERRY_DEMO_ENV="$PARTS_DIR/cloudberry/gpAux/gpdemo/gpdemo-env.sh"
-
-[ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
-if ! source_cloudberry_env /usr/local/cloudberry; then
-  log_warning "Failed to load Cloudberry environment, database access may be limited"
-fi
-
-if [[ -f "$CLOUDBERRY_DEMO_ENV" ]]; then
-  source "$CLOUDBERRY_DEMO_ENV"
-else
-  log_warning "gpdemo-env.sh not found at $CLOUDBERRY_DEMO_ENV, database access may be limited"
-fi
-
 # Configuration
 readonly CRASH_TEST_SQL="$(dirname "$0")/postgis-crash-test.sql"
 readonly EXAMPLES_TEST_SQL="$(dirname "$0")/cloudberry-postgis-examples-test.sql"
