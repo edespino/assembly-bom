@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/core/cloudberry/common-cloudberry.sh
+# File     : stations/core/cloudberry/common.sh
 # Purpose  : Common functions for Cloudberry Database build scripts
 # --------------------------------------------------------------------
 

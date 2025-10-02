@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/configure.sh
+# File     : stations/generic/configure.sh
 # Purpose  : Default configure step for components with standard autotools
 # Inputs   :
 #   - NAME              : component name

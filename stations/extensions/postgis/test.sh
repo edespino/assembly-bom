@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/extensions/postgis/test-postgis.sh
+# File     : stations/extensions/postgis/test.sh
 # Purpose  : Run comprehensive PostGIS regression tests in Cloudberry Database
 # Inputs   :
 #   - NAME                    : component name (should be "postgis")

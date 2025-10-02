@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/installcheck-pax-storage-cloudberry.sh
+# File     : stations/core/cloudberry/installcheck-pax-storage.sh
 # Purpose  : Run PAX storage installcheck tests for cloudberry
 # --------------------------------------------------------------------
 
@@ -11,4 +11,4 @@ IFS=$'\n\t'
 export TEST_CONFIG_NAME="pax-storage"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "${SCRIPT_DIR}/installcheck-cloudberry.sh"
+exec "${SCRIPT_DIR}/installcheck.sh"

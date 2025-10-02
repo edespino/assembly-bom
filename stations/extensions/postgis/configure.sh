@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/extensions/postgis/configure-postgis.sh
+# File     : stations/extensions/postgis/configure.sh
 # Purpose  : Configure step for PostGIS extension
 # Inputs   :
 #   - NAME              : component name (should be "postgis")

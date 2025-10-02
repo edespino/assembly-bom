@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/installcheck-optimizer-off-cloudberry.sh
+# File     : stations/core/cloudberry/installcheck-optimizer-off.sh
 # Purpose  : Run installcheck with optimizer disabled for cloudberry
 # --------------------------------------------------------------------
 
@@ -11,4 +11,4 @@ IFS=$'\n\t'
 export TEST_CONFIG_NAME="optimizer-off"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "${SCRIPT_DIR}/installcheck-cloudberry.sh"
+exec "${SCRIPT_DIR}/installcheck.sh"

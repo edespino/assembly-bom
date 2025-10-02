@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/geos/build-geos.sh
+# File     : stations/dependencies/geos/build.sh
 # Purpose  : Build step for GEOS library
 # Inputs   :
 #   - NAME              : component name (should be "geos")

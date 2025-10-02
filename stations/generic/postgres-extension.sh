@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/postgres-extension.sh
+# File     : stations/generic/postgres-extension.sh
 # Purpose  : Generic build/install/test for simple PostgreSQL extensions
 # Inputs   :
 #   - NAME                        : name of the component (required)

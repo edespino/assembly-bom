@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/proj/build-proj.sh
+# File     : stations/dependencies/proj/build.sh
 # Purpose  : Build step for PROJ library
 # Inputs   :
 #   - NAME              : component name (should be "proj")

@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/geos/configure-geos.sh
+# File     : stations/dependencies/geos/configure.sh
 # Purpose  : Configure step for GEOS library using CMake
 # Inputs   :
 #   - NAME              : component name (should be "geos")

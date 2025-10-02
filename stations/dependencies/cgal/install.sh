@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/cgal/install-cgal.sh
+# File     : stations/dependencies/cgal/install.sh
 # Purpose  : Install step for CGAL library
 # Inputs   :
 #   - NAME              : component name (should be "cgal")

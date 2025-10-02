@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/unittest-cloudberry.sh
+# File     : stations/core/cloudberry/unittest.sh
 # Purpose  : Unittest script for the 'cloudberry'
 # Inputs   :
 #   - NAME           : name of the component (default: cloudberry)

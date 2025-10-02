@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/create-demo-cluster-cloudberry.sh
+# File     : stations/core/cloudberry/create-demo-cluster.sh
 # Purpose  : Initialize a Cloudberry demo cluster
 # --------------------------------------------------------------------
 

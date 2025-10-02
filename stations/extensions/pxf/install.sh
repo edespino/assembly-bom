@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/extensions/pxf/install-pxf.sh
+# File     : stations/extensions/pxf/install.sh
 # Purpose  : Install the 'pxf' extension and list installed extensions.
 # Inputs   :
 #   - NAME           : name of the component (default: pxf)

@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/extensions/postgis/build-postgis.sh
+# File     : stations/extensions/postgis/build.sh
 # Purpose  : Build step for PostGIS extension
 # Inputs   :
 #   - NAME              : component name (should be "postgis")

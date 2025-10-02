@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/cgal/build-cgal.sh
+# File     : stations/dependencies/cgal/build.sh
 # Purpose  : Build step for CGAL library
 # Inputs   :
 #   - NAME              : component name (should be "cgal")

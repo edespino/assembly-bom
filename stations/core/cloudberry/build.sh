@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/build-cloudberry.sh
+# File     : stations/core/cloudberry/build.sh
 # Purpose  : Specialized build script for the 'cloudberry' core component.
 # Inputs   :
 #   - INSTALL_PREFIX : optional override (defaults to /usr/local/cloudberry)
@@ -24,7 +24,7 @@ else
 fi
 
 # Load Cloudberry-specific functions
-CLOUDBERRY_COMMON="${SCRIPT_DIR}/common-cloudberry.sh"
+CLOUDBERRY_COMMON="${SCRIPT_DIR}/common.sh"
 if [ -f "${CLOUDBERRY_COMMON}" ]; then
   # shellcheck disable=SC1090
   source "${CLOUDBERRY_COMMON}"

@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/proj/configure-proj.sh
+# File     : stations/dependencies/proj/configure.sh
 # Purpose  : Configure step for PROJ library using autotools
 # Inputs   :
 #   - NAME              : component name (should be "proj")

@@ -39,7 +39,7 @@ This document describes the integration of PostGIS crash testing capabilities in
 
 ### Script Implementation
 
-**Location**: `stations/extensions/postgis/crash-test-postgis.sh`
+**Location**: `stations/extensions/postgis/crash-test.sh`
 **Purpose**: Comprehensive crash reproduction and analysis
 **Integration**: Follows Assembly-BOM conventions
 
@@ -132,7 +132,7 @@ fi
 ```
 assembly.sh --run --component postgis --steps crash-test
     ↓
-stations/extensions/postgis/crash-test-postgis.sh
+stations/extensions/postgis/crash-test.sh
     ↓ (imports)
 stations/generic/common.sh (logging functions)
     ↓ (executes)
@@ -174,7 +174,7 @@ This step should be removed when:
 - **Cleanup**: Automatic core file cleaning before each test
 
 ### Framework Compliance
-- **Naming**: Follow `{step}-{component}.sh` convention
+- **Naming**: Follow `{step}.sh` convention (component is identified by directory path)
 - **Environment**: Use Assembly-BOM environment variables (NAME, GPHOME)
 - **Logging**: Use common.sh logging functions for consistency
 - **Exit Codes**: Return 1 for crashes (expected), 0 for stability

@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/sfcgal/install-sfcgal.sh
+# File     : stations/dependencies/sfcgal/install.sh
 # Purpose  : Install step for SFCGAL library
 # Inputs   :
 #   - NAME              : component name (should be "sfcgal")

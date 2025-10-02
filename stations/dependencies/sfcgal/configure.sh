@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/sfcgal/configure-sfcgal.sh
+# File     : stations/dependencies/sfcgal/configure.sh
 # Purpose  : Configure step for SFCGAL library using CMake
 # Inputs   :
 #   - NAME              : component name (should be "sfcgal")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/regress-test-pax-cloudberry.sh
+# File     : stations/core/cloudberry/regress-test-pax.sh
 # Purpose  : Run PAX storage regression tests for cloudberry
 # --------------------------------------------------------------------
 
@@ -11,4 +11,4 @@ IFS=$'\n\t'
 export TEST_CONFIG_NAME="pax-regress"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "${SCRIPT_DIR}/installcheck-cloudberry.sh"
+exec "${SCRIPT_DIR}/installcheck.sh"

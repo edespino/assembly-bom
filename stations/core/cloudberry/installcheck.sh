@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/installcheck-cloudberry.sh
+# File     : stations/core/cloudberry/installcheck.sh
 # Purpose  : Installcheck script for the 'cloudberry'
 # Inputs   :
 #   - NAME           : name of the component (default: cloudberry)

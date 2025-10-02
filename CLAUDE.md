@@ -52,7 +52,7 @@ CGAL 5.6.1 → SFCGAL 1.4.1 → GEOS 3.11.0 → PROJ 6.0.0 → GDAL 3.5.3 → Po
 PostGIS has known stability issues. The crash testing framework provides systematic reproduction:
 
 **Files**:
-- `stations/extensions/postgis/crash-test-postgis.sh` - Comprehensive crash reproduction
+- `stations/extensions/postgis/crash-test.sh` - Comprehensive crash reproduction
 - `stations/extensions/postgis/postgis-crash-test.sql` - ST_Buffer crash scenario
 - `stations/extensions/postgis/cloudberry-postgis-examples-test.sql` - Documentation examples
 
@@ -100,7 +100,7 @@ PostGIS has known stability issues. The crash testing framework provides systema
 - **TOAST-CORRUPTION**: TOAST data handling issues with large geometries
 - **POSTGIS-FUNCTION**: ST_AsText(), ST_Buffer() crashes in distributed queries
 
-**Core Dump Analysis**: Automated pattern recognition in crash-test-postgis.sh identifies these signatures.
+**Core Dump Analysis**: Automated pattern recognition in crash-test.sh identifies these signatures.
 
 ## File Organization
 
@@ -108,7 +108,7 @@ PostGIS has known stability issues. The crash testing framework provides systema
 - `bom.yaml` - Component definitions and build configuration
 - `stations/generic/common.sh` - Shared logging and utility functions
 - `config/env.sh` - Environment setup with library paths
-- `stations/extensions/postgis/test-postgis.sh` - Comprehensive PostGIS testing
+- `stations/extensions/postgis/test.sh` - Comprehensive PostGIS testing
 
 ### Station Script Discovery Pattern
 1. Look for `stations/{layer}/{component}/{step}.sh`

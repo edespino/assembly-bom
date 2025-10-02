@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/cgal/configure-cgal.sh
+# File     : stations/dependencies/cgal/configure.sh
 # Purpose  : Configure step for CGAL library using CMake
 # Inputs   :
 #   - NAME              : component name (should be "cgal")

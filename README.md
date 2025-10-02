@@ -169,9 +169,9 @@ sudo dnf install -y libxslt docbook-style-xsl
 ### 3. Individual Station Execution
 ```bash
 # Run individual build steps directly
-NAME=cloudberry INSTALL_PREFIX=/usr/local/cloudberry ./stations/core/cloudberry/build-cloudberry.sh
-NAME=pxf ./stations/extensions/pxf/build-pxf.sh
-NAME=postgis ./stations/extensions/postgis/build-postgis.sh
+NAME=cloudberry INSTALL_PREFIX=/usr/local/cloudberry ./stations/core/cloudberry/build.sh
+NAME=pxf ./stations/extensions/pxf/build.sh
+NAME=postgis ./stations/extensions/postgis/build.sh
 ```
 
 ---
@@ -298,10 +298,10 @@ INSTALL_PREFIX=/opt/cloudberry ./assemble.sh --run --component cloudberry
 
 ### Component-Specific Scripts
 ```bash
-# Override pattern: stations/{layer}/{component}/{step}-{component}.sh
-stations/extensions/myextension/configure-myextension.sh
-stations/extensions/myextension/build-myextension.sh
-stations/extensions/myextension/test-myextension.sh
+# Override pattern: stations/{layer}/{component}/{step}.sh
+stations/extensions/myextension/configure.sh
+stations/extensions/myextension/build.sh
+stations/extensions/myextension/test.sh
 ```
 
 ---

@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/sfcgal/build-sfcgal.sh
+# File     : stations/dependencies/sfcgal/build.sh
 # Purpose  : Build step for SFCGAL library
 # Inputs   :
 #   - NAME              : component name (should be "sfcgal")

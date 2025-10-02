@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/gdal/configure-gdal.sh
+# File     : stations/dependencies/gdal/configure.sh
 # Purpose  : Configure step for GDAL library using autotools
 # Inputs   :
 #   - NAME              : component name (should be "gdal")

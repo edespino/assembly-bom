@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/gdal/install-gdal.sh
+# File     : stations/dependencies/gdal/install.sh
 # Purpose  : Install step for GDAL library
 # Inputs   :
 #   - NAME              : component name (should be "gdal")

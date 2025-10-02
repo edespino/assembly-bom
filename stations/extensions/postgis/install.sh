@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/extensions/postgis/install-postgis.sh
+# File     : stations/extensions/postgis/install.sh
 # Purpose  : Install step for PostGIS extension
 # Inputs   :
 #   - NAME              : component name (should be "postgis")

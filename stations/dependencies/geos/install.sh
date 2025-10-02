@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/geos/install-geos.sh
+# File     : stations/dependencies/geos/install.sh
 # Purpose  : Install step for GEOS library
 # Inputs   :
 #   - NAME              : component name (should be "geos")

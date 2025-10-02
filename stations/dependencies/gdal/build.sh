@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/gdal/build-gdal.sh
+# File     : stations/dependencies/gdal/build.sh
 # Purpose  : Build step for GDAL library
 # Inputs   :
 #   - NAME              : component name (should be "gdal")

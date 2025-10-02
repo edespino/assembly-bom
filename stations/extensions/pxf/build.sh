@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/build-pxf.sh
+# File     : stations/extensions/pxf/build.sh
 # Purpose  : Build script for the 'cloudberry-pxf' extension.
 # Inputs   :
 #   - NAME           : name of the component (default: cloudberry-pxf)

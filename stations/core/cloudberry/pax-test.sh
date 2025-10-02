@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/pax-test-cloudberry.sh
+# File     : stations/core/cloudberry/pax-test.sh
 # Purpose  : Run PAX-specific tests for cloudberry
 # --------------------------------------------------------------------
 
@@ -11,4 +11,4 @@ IFS=$'\n\t'
 export TEST_CONFIG_NAME="pax-test"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "${SCRIPT_DIR}/installcheck-cloudberry.sh"
+exec "${SCRIPT_DIR}/installcheck.sh"

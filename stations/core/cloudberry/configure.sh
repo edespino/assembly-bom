@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/configure-cloudberry.sh
+# File     : stations/core/cloudberry/configure.sh
 # Purpose  : Specialized configure script for the 'cloudberry' core component.
 # Inputs   :
 #   - CONFIGURE_FLAGS: passed from bom.yaml
@@ -25,7 +25,7 @@ else
 fi
 
 # Load Cloudberry-specific functions
-CLOUDBERRY_COMMON="${SCRIPT_DIR}/common-cloudberry.sh"
+CLOUDBERRY_COMMON="${SCRIPT_DIR}/common.sh"
 if [ -f "${CLOUDBERRY_COMMON}" ]; then
   # shellcheck disable=SC1090
   source "${CLOUDBERRY_COMMON}"

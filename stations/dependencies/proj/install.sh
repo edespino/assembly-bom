@@ -1,6 +1,6 @@
 #!/bin/sh
 # --------------------------------------------------------------------
-# File     : stations/dependencies/proj/install-proj.sh
+# File     : stations/dependencies/proj/install.sh
 # Purpose  : Install step for PROJ library
 # Inputs   :
 #   - NAME              : component name (should be "proj")

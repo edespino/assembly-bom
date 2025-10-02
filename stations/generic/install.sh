@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
-# File     : stations/install.sh
+# File     : stations/generic/install.sh
 # Purpose  : Default install script for components using `make install`.
 # Inputs   :
 #   - NAME : component name (required)
