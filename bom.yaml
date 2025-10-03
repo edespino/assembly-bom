@@ -8,11 +8,7 @@ products:
           branch: main
           configure_flags: |
             --disable-external-fts
-            --enable-debug
-            --enable-cassert
-            --enable-debug-extensions
             --enable-gpcloud
-            --enable-gpfdist
             --enable-ic-proxy
             --enable-mapreduce
             --enable-orafce
@@ -22,8 +18,6 @@ products:
             --enable-tap-tests
             --with-gssapi
             --with-ldap
-            --with-libbz2
-            --with-libcurl
             --with-libxml
             --with-lz4
             --with-openssl
@@ -31,9 +25,10 @@ products:
             --with-perl
             --with-pgport=5432
             --with-python
+            --with-pythonsrc-ext
             --with-ssl=openssl
+            --with-openssl
             --with-uuid=e2fs
-            --with-zstd
           steps:
             - clone
             - configure
