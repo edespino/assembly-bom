@@ -5,7 +5,6 @@
 # Inputs   :
 #   - NAME            : component name (default: cloudberry)
 #   - INSTALL_PREFIX  : optional (defaults to /usr/local)
-#   - GP_ENV_PATH     : optional (if set, used for final `postgres` check)
 # --------------------------------------------------------------------
 
 set -euo pipefail
@@ -40,7 +39,6 @@ fi
 NAME="${NAME:-cloudberry}"
 INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/$NAME}"
 BUILD_DIR="$PARTS_DIR/$NAME"
-# GP_ENV_PATH will be determined by cloudberry-env-loader
 
 section "install: $NAME"
 start_time=$(date +%s)

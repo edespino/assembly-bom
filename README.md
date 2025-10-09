@@ -67,7 +67,7 @@ products:
     components:
       core:
         - name: cloudberry
-          url: git@github.com:apache/cloudberry.git
+          url: https://github.com/apache/cloudberry.git
           branch: main
           configure_flags: |
             --disable-external-fts
@@ -90,7 +90,7 @@ products:
 
       extensions:
         - name: pxf
-          url: git@github.com:apache/cloudberry-pxf.git
+          url: https://github.com/apache/cloudberry-pxf.git
           branch: upstream
           steps:
             - clone
@@ -98,7 +98,7 @@ products:
             - install-test
 
         - name: postgis
-          url: git@github.com:cloudberry-contrib/postgis.git
+          url: https://github.com/cloudberry-contrib/postgis.git
           branch: main
           configure_flags: |
             --with-pgconfig="${GPHOME}"/bin/pg_config
@@ -118,6 +118,7 @@ products:
       dependencies:
         - name: cgal
           url: https://github.com/CGAL/cgal/releases/download/v5.6.1/CGAL-5.6.1.tar.xz
+          branch: "v5.6.1"
           configure_flags: |
             -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_INSTALL_PREFIX=/usr/local/cgal-5.6.1
@@ -316,7 +317,7 @@ Apache License 2.0 — see [LICENSE](LICENSE)
 
 This Assembly BOM tool follows Software Bill of Materials best practices for development workflows. Contributions should maintain:
 
-- **Deterministic builds** - Reproducible component assembly
+- **Deterministic builds** - Reproducible component assembly 
 - **Clear dependencies** - Explicit component relationships
 - **Systematic testing** - Comprehensive validation at each layer
 - **Documentation** - Clear component descriptions and build instructions

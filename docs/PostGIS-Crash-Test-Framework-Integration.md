@@ -18,7 +18,7 @@ This document describes the integration of PostGIS crash testing capabilities in
 
 ```yaml
 - name: postgis
-  url: git@github.com:cloudberry-contrib/postgis.git
+  url: https://github.com/cloudberry-contrib/postgis.git
   branch: main
   configure_flags: |
     --with-pgconfig="${GPHOME}"/bin/pg_config
