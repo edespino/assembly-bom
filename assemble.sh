@@ -153,7 +153,7 @@ force_reset_repo() {
 if [[ "$SHOW_LIST" == true ]]; then
   echo "[assemble] Component listing for product: $PRODUCT"
 
-  for LAYER in dependencies core extensions components; do
+  for LAYER in dependencies core extensions utilities components; do
     COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
     [[ "$COUNT" -eq 0 ]] && continue
 
@@ -198,8 +198,8 @@ fi
 # DRY-RUN MODE
 # --------------------------------------------------------------------
 if [[ "$DO_DRY_RUN" == true ]]; then
-  echo "[assemble] Dry run: Build order based on layer ordering (dependencies → core → extensions → components)"
-  for LAYER in dependencies core extensions components; do
+  echo "[assemble] Dry run: Build order based on layer ordering (dependencies → core → extensions → utilities → components)"
+  for LAYER in dependencies core extensions utilities components; do
     COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
     if [[ "$COUNT" -eq 0 ]]; then continue; fi
     echo ""
@@ -227,7 +227,7 @@ SUMMARY_LINES=()
 
 sudo chmod a+w /usr/local
 
-for LAYER in dependencies core extensions components; do
+for LAYER in dependencies core extensions utilities components; do
   COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
   if [[ "$COUNT" -eq 0 ]]; then continue; fi
 
@@ -250,6 +250,7 @@ for LAYER in dependencies core extensions components; do
     URL=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].url" bom.yaml)
     BRANCH=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].branch" bom.yaml)
     CONFIGURE_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].configure_flags" bom.yaml)
+    BUILD_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].build_flags" bom.yaml)
 
     if [[ -n "$STEP_OVERRIDE" ]]; then
       IFS=',' read -ra STEPS <<< "$STEP_OVERRIDE"
@@ -262,7 +263,7 @@ for LAYER in dependencies core extensions components; do
     fi
 
     echo "[assemble] Component: $NAME"
-    export NAME URL BRANCH CONFIGURE_FLAGS
+    export NAME URL BRANCH CONFIGURE_FLAGS BUILD_FLAGS
     export INSTALL_PREFIX="/usr/local/$NAME"
 
     ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" bom.yaml 2>/dev/null || true)

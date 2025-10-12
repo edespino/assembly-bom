@@ -43,12 +43,26 @@ cd "$BUILD_DIR"
 
 log "Component:       $NAME"
 log "Build directory: $BUILD_DIR"
+
+# Find the actual source directory (handle extracted tarballs)
+if [ ! -f "./Makefile" ]; then
+  # Look for Makefile in subdirectories (common for tarballs)
+  SUBDIR=$(find . -maxdepth 2 -name "Makefile" -type f | head -1 | xargs dirname)
+  if [ -n "$SUBDIR" ] && [ -f "$SUBDIR/Makefile" ]; then
+    log "Found Makefile in: $SUBDIR"
+    cd "$SUBDIR" || exit 1
+  else
+    echo "[install] ERROR: No Makefile found in $BUILD_DIR"
+    exit 1
+  fi
+fi
+
 echo ""
 
 # Perform install
-install_cmd=(make -j"$(nproc)" install)
+install_cmd=(sudo make -j"$(nproc)" install)
 log "Running install command:"
 printf '  %s\n' "${install_cmd[@]}"
-"${install_cmd[@]}" | tee "make-install-$(date '+%Y.%m.%d-%H.%M.%S').log"
+"${install_cmd[@]}" | tee "$BUILD_DIR/make-install-$(date '+%Y.%m.%d-%H.%M.%S').log"
 
 section_complete "install" "$start_time"
