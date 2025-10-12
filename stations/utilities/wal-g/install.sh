@@ -34,8 +34,8 @@ section "install: $NAME"
 start_time=$(date +%s)
 
 # Validate binary exists
-if [[ ! -f "$WALG_DIR/main/pg/wal-g" ]]; then
-  echo "[install-wal-g] ERROR: Binary not found at $WALG_DIR/main/pg/wal-g"
+if [[ ! -f "$WALG_DIR/main/gp/wal-g" ]]; then
+  echo "[install-wal-g] ERROR: Binary not found at $WALG_DIR/main/gp/wal-g"
   exit 1
 fi
 
@@ -44,8 +44,8 @@ log "Creating installation directory: $INSTALL_PREFIX"
 sudo mkdir -p "$INSTALL_PREFIX/bin"
 
 # Install the binary
-log "Installing wal-g binary to $INSTALL_PREFIX/bin/"
-sudo cp "$WALG_DIR/main/pg/wal-g" "$INSTALL_PREFIX/bin/"
+log "Installing wal-g (Greenplum/Cloudberry) binary to $INSTALL_PREFIX/bin/"
+sudo cp "$WALG_DIR/main/gp/wal-g" "$INSTALL_PREFIX/bin/"
 sudo chmod +x "$INSTALL_PREFIX/bin/wal-g"
 
 # Verify installation

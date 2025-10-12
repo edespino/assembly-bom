@@ -101,9 +101,9 @@ fi
 log "Installing Go dependencies..."
 make deps 2>&1 | tee "make-${NAME}-deps-$(date '+%Y%m%d-%H%M%S').log"
 
-# Build wal-g for PostgreSQL/Cloudberry
-log "Building $NAME for PostgreSQL/Cloudberry..."
-cd main/pg
+# Build wal-g for Greenplum/Cloudberry
+log "Building $NAME for Greenplum/Cloudberry..."
+cd main/gp
 
 # Prepare build tags
 BUILD_TAGS=""
@@ -120,9 +120,9 @@ WAL_G_VERSION=$(git tag -l --points-at HEAD 2>/dev/null | grep -E '^v[0-9]+\.[0-
 [[ -z "$WAL_G_VERSION" ]] && WAL_G_VERSION="${BRANCH:-v3.0.7}"
 
 LDFLAGS="-s -w"
-LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/pg.buildDate=$BUILD_DATE"
-LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/pg.gitRevision=$GIT_REVISION"
-LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/pg.walgVersion=$WAL_G_VERSION"
+LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/gp.buildDate=$BUILD_DATE"
+LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/gp.gitRevision=$GIT_REVISION"
+LDFLAGS="$LDFLAGS -X github.com/wal-g/wal-g/cmd/gp.walgVersion=$WAL_G_VERSION"
 
 log "Build tags: $BUILD_TAGS"
 log "Version: $WAL_G_VERSION (git: $GIT_REVISION, built: $BUILD_DATE)"
@@ -131,11 +131,11 @@ go build -mod vendor -tags "$BUILD_TAGS" -ldflags "$LDFLAGS" -o wal-g 2>&1 | tee
 cd "$WALG_DIR"
 
 # Verify the binary was created
-if [[ ! -f "main/pg/wal-g" ]]; then
-  echo "[build-wal-g] ERROR: Binary not found at main/pg/wal-g"
+if [[ ! -f "main/gp/wal-g" ]]; then
+  echo "[build-wal-g] ERROR: Binary not found at main/gp/wal-g"
   exit 1
 fi
 
-log "Build successful: $(file main/pg/wal-g)"
+log "Build successful: $(file main/gp/wal-g)"
 
 section_complete "build-wal-g" "$start_time"
