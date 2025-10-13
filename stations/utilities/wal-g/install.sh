@@ -28,7 +28,7 @@ fi
 
 NAME="${NAME:-wal-g}"
 WALG_DIR="$PARTS_DIR/$NAME"
-INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/wal-g}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
 
 section "install: $NAME"
 start_time=$(date +%s)
@@ -59,9 +59,16 @@ if [[ -f "$INSTALL_PREFIX/bin/wal-g" ]]; then
     log "Version: $VERSION"
   fi
 
+  # Create symlink in /usr/bin for wal-g recovery config compatibility
+  # wal-g hardcodes /usr/bin/wal-g in recovery configurations
+  log "Creating symlink in /usr/bin for recovery compatibility"
+  sudo ln -sf "$INSTALL_PREFIX/bin/wal-g" /usr/bin/wal-g
+  log "  ✓ Symlink created: /usr/bin/wal-g -> $INSTALL_PREFIX/bin/wal-g"
+
   log ""
-  log "To use wal-g, add to PATH:"
-  log "  export PATH=\"$INSTALL_PREFIX/bin:\$PATH\""
+  log "wal-g is now available at:"
+  log "  - $INSTALL_PREFIX/bin/wal-g (primary installation)"
+  log "  - /usr/bin/wal-g (symlink for recovery compatibility)"
 else
   echo "[install-wal-g] ERROR: Installation failed"
   exit 1

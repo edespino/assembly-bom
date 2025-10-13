@@ -106,6 +106,7 @@ products:
             - build
             - install
             - test
+            - extended-test
 
       dependencies:
         - name: libsodium

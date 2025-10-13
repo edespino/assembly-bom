@@ -26,7 +26,7 @@ fi
 [ -f config/env.sh ] && source config/env.sh
 
 NAME="${NAME:-wal-g}"
-WALG_BIN="/usr/local/wal-g/bin/wal-g"
+WALG_BIN="/usr/local/bin/wal-g"
 
 section "test: $NAME"
 start_time=$(date +%s)
@@ -117,9 +117,8 @@ log "  - Storage: $WALG_BACKUP_DIR"
 log "  - Logs: $WALG_LOG_DIR"
 
 # Wrapper function to run wal-g with config
-# For Greenplum/Cloudberry, wal-g spawns segment processes that need wal-g and bash in PATH
 walg() {
-  PATH="/usr/local/wal-g/bin:/usr/bin:/usr/local/bin:$PATH" "$WALG_BIN" --config="$WALG_CONFIG_FILE" "$@"
+  "$WALG_BIN" --config="$WALG_CONFIG_FILE" "$@"
 }
 
 # Display configuration
