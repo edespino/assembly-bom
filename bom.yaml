@@ -105,6 +105,7 @@ products:
             - clone
             - build
             - install
+            - test
 
       dependencies:
         - name: libsodium
