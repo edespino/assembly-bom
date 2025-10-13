@@ -63,17 +63,10 @@ log "Checking for running wal-g processes..."
 WALG_PIDS=$(pgrep -f "wal-g.*backup-push" || true)
 if [[ -n "$WALG_PIDS" ]]; then
   log "  ⚠ Found running wal-g processes: $WALG_PIDS"
-  read -p "Kill existing wal-g processes? (y/N): " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    log "  - Killing processes: $WALG_PIDS"
-    echo "$WALG_PIDS" | xargs kill -9 2>/dev/null || true
-    sleep 2
-    log "  ✓ Processes terminated"
-  else
-    echo "[test-wal-g] ERROR: Cannot proceed with existing wal-g processes running"
-    exit 1
-  fi
+  log "  - Automatically terminating processes for clean test run"
+  echo "$WALG_PIDS" | xargs kill -9 2>/dev/null || true
+  sleep 2
+  log "  ✓ Processes terminated"
 else
   log "  ✓ No existing wal-g processes found"
 fi
@@ -360,14 +353,8 @@ log ""
 log "========================================="
 log "Test 12: Cleanup"
 log "========================================="
-read -p "Drop test database walg_test? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  psql -c "DROP DATABASE walg_test;" postgres
-  log "  ✓ Test database dropped"
-else
-  log "  - Test database preserved for inspection"
-fi
+log "  - Test database preserved for inspection"
+log "  - To drop manually: psql -c \"DROP DATABASE walg_test;\" postgres"
 
 log ""
 log "Test files preserved at:"
