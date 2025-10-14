@@ -127,12 +127,21 @@ WAL-G is configured in `bom.yaml`:
   build_flags: |
     USE_BROTLI=1
     USE_LIBSODIUM=1
+  env:
+    INSTALL_PREFIX: /usr/local
   steps:
     - clone
     - build
     - install
     - test
+    - extended-test
 ```
+
+### Installation Path Override
+
+By default, components install to `/usr/local/$NAME` (e.g., `/usr/local/wal-g`). WAL-G overrides this to `/usr/local` via the `env.INSTALL_PREFIX` setting, resulting in the binary being installed at `/usr/local/bin/wal-g`. This simplifies PATH configuration and follows standard Unix conventions for system utilities.
+
+A symlink is also created at `/usr/bin/wal-g` for recovery configuration compatibility.
 
 ## Test Suite
 

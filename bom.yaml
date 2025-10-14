@@ -101,6 +101,8 @@ products:
           build_flags: |
             USE_BROTLI=1
             USE_LIBSODIUM=1
+          env:
+            INSTALL_PREFIX: /usr/local
           steps:
             - clone
             - build
