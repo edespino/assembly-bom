@@ -14,7 +14,7 @@ Install WAL-G to the default location:
 ./assemble.sh --run --component wal-g --steps install
 ```
 
-This installs to `/usr/local/wal-g/bin/wal-g`
+This installs to `/usr/local/bin/wal-g`
 
 ### Custom Installation
 
@@ -28,7 +28,7 @@ INSTALL_PREFIX=/opt/wal-g ./assemble.sh --run --component wal-g --steps install
 
 ### Default Paths
 
-- **Binary**: `/usr/local/wal-g/bin/wal-g`
+- **Binary**: `/usr/local/bin/wal-g`
 - **Source**: `~/bom-parts/wal-g/`
 - **Build logs**: `~/bom-parts/wal-g/make-wal-g-*.log`
 
@@ -38,10 +38,10 @@ Add WAL-G to your PATH:
 
 ```bash
 # For current session
-export PATH="/usr/local/wal-g/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
 
 # Permanent (add to ~/.bashrc or ~/.bash_profile)
-echo 'export PATH="/usr/local/wal-g/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -51,10 +51,10 @@ source ~/.bashrc
 
 ```bash
 # Verify binary exists
-ls -lh /usr/local/wal-g/bin/wal-g
+ls -lh /usr/local/bin/wal-g
 
 # Check version
-/usr/local/wal-g/bin/wal-g --version
+/usr/local/bin/wal-g --version
 ```
 
 Expected output:
@@ -161,11 +161,11 @@ WAL-G should run as the same user as Cloudberry (typically `gpadmin`):
 
 ```bash
 # Verify ownership
-ls -ld /usr/local/wal-g/bin/wal-g
+ls -ld /usr/local/bin/wal-g
 
 # If needed, adjust permissions
-sudo chown root:root /usr/local/wal-g/bin/wal-g
-sudo chmod 755 /usr/local/wal-g/bin/wal-g
+sudo chown root:root /usr/local/bin/wal-g
+sudo chmod 755 /usr/local/bin/wal-g
 ```
 
 ## Uninstallation
@@ -174,7 +174,7 @@ To remove WAL-G:
 
 ```bash
 # Remove binary
-sudo rm -rf /usr/local/wal-g
+sudo rm -f /usr/local/bin/wal-g /usr/bin/wal-g
 
 # Remove configuration (optional)
 sudo rm -rf /etc/wal-g
@@ -191,10 +191,10 @@ If `wal-g` command is not found:
 
 ```bash
 # Check if binary exists
-ls -l /usr/local/wal-g/bin/wal-g
+ls -l /usr/local/bin/wal-g
 
 # Add to PATH temporarily
-export PATH="/usr/local/wal-g/bin:$PATH"
+export PATH="/usr/local/bin:$PATH"
 
 # Verify
 which wal-g
@@ -206,10 +206,10 @@ If you see "permission denied":
 
 ```bash
 # Check permissions
-ls -l /usr/local/wal-g/bin/wal-g
+ls -l /usr/local/bin/wal-g
 
 # Fix if needed
-sudo chmod +x /usr/local/wal-g/bin/wal-g
+sudo chmod +x /usr/local/bin/wal-g
 ```
 
 ### Bash Not Found Error

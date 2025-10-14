@@ -26,7 +26,7 @@ WAL-G is a backup and recovery tool for Cloudberry/Greenplum databases, providin
 ./assemble.sh --run --component wal-g --steps install
 
 # Verify installation
-/usr/local/wal-g/bin/wal-g --version
+/usr/local/bin/wal-g --version
 ```
 
 ### Run Tests
@@ -241,7 +241,7 @@ export PATH="/usr/bin:/usr/local/bin:$PATH"
 
 **Permission denied**:
 ```bash
-sudo chmod +x /usr/local/wal-g/bin/wal-g
+sudo chmod +x /usr/local/bin/wal-g
 ```
 
 **Cluster not running**:
@@ -266,9 +266,9 @@ gpstart -a
 cat > /usr/local/bin/daily-backup.sh <<'EOF'
 #!/bin/bash
 set -e
-/usr/local/wal-g/bin/wal-g backup-push --full \
+/usr/local/bin/wal-g backup-push --full \
   --config=/etc/wal-g/wal-g.json
-/usr/local/wal-g/bin/wal-g delete retain 7 \
+/usr/local/bin/wal-g delete retain 7 \
   --config=/etc/wal-g/wal-g.json
 EOF
 

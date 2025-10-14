@@ -193,7 +193,7 @@ log "========================================="
 log "Running: wal-g backup-push (full backup)..."
 log "  Note: This may take 1-2 minutes for all segments..."
 # Add timeout to prevent indefinite hanging
-if timeout 180 bash -c "PATH='/usr/local/wal-g/bin:/usr/bin:/usr/local/bin:\$PATH' '$WALG_BIN' --config='$WALG_CONFIG_FILE' backup-push --full" 2>&1 | tee "$TEST_BASE_DIR/backup-push.log"; then
+if timeout 180 bash -c "'$WALG_BIN' --config='$WALG_CONFIG_FILE' backup-push --full" 2>&1 | tee "$TEST_BASE_DIR/backup-push.log"; then
   log "  ✓ Full backup COMPLETED"
 else
   BACKUP_EXIT_CODE=$?
@@ -273,7 +273,7 @@ log "========================================="
 log "Test 8: Create Delta Backup"
 log "========================================="
 log "Running: wal-g backup-push (delta backup)..."
-if timeout 180 bash -c "PATH='/usr/local/wal-g/bin:/usr/bin:/usr/local/bin:\$PATH' '$WALG_BIN' --config='$WALG_CONFIG_FILE' backup-push" 2>&1 | tee "$TEST_BASE_DIR/backup-push-delta.log"; then
+if timeout 180 bash -c "'$WALG_BIN' --config='$WALG_CONFIG_FILE' backup-push" 2>&1 | tee "$TEST_BASE_DIR/backup-push-delta.log"; then
   log "  ✓ Delta backup COMPLETED"
 else
   DELTA_EXIT_CODE=$?

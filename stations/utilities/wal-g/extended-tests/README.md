@@ -79,7 +79,7 @@ cd stations/utilities/wal-g/extended-tests
 
 ### Prerequisites
 - Cloudberry cluster must be running (gpdemo)
-- wal-g installed at `/usr/local/wal-g/bin/wal-g`
+- wal-g installed at `/usr/local/bin/wal-g`
 - gpdemo environment sourced
 
 ### Configuration
@@ -167,7 +167,7 @@ insert_data
 run_backup_logged "${WALG_CONFIG_FILE}" "${COORDINATOR_DATA_DIRECTORY}" "--full"
 
 # Verify results
-verify_backup_count 1 "$(/usr/local/wal-g/bin/wal-g backup-list --config=${WALG_CONFIG_FILE})"
+verify_backup_count 1 "$(/usr/local/bin/wal-g backup-list --config=${WALG_CONFIG_FILE})"
 
 echo ""
 echo "✓ $TEST_NAME PASSED"

@@ -4,7 +4,7 @@
 # Purpose  : Install script for the 'wal-g' backup utility.
 # Inputs   :
 #   - NAME           : name of the component (default: wal-g)
-#   - INSTALL_PREFIX : installation prefix (default: /usr/local/wal-g)
+#   - INSTALL_PREFIX : installation prefix (default: /usr/local)
 # --------------------------------------------------------------------
 
 set -euo pipefail

@@ -268,7 +268,7 @@ Set up automated retention:
 
 ```bash
 # In cron or scheduler
-0 2 * * * /usr/local/wal-g/bin/wal-g delete retain 7 --config=/etc/wal-g/wal-g.json
+0 2 * * * /usr/local/bin/wal-g delete retain 7 --config=/etc/wal-g/wal-g.json
 ```
 
 ## Advanced Features
@@ -356,14 +356,14 @@ LOG="/var/log/wal-g/daily-backup.log"
 
 echo "$(date): Starting daily backup" >> "$LOG"
 
-/usr/local/wal-g/bin/wal-g backup-push --full \
+/usr/local/bin/wal-g backup-push --full \
   --add-user-data="daily-$(date +%Y%m%d)" \
   --config="$CONFIG" >> "$LOG" 2>&1
 
 echo "$(date): Backup completed" >> "$LOG"
 
 # Clean up old backups
-/usr/local/wal-g/bin/wal-g delete retain 7 --config="$CONFIG" >> "$LOG" 2>&1
+/usr/local/bin/wal-g delete retain 7 --config="$CONFIG" >> "$LOG" 2>&1
 ```
 
 Cron entry:
@@ -384,7 +384,7 @@ LOG="/var/log/wal-g/hourly-delta.log"
 
 echo "$(date): Starting delta backup" >> "$LOG"
 
-/usr/local/wal-g/bin/wal-g backup-push \
+/usr/local/bin/wal-g backup-push \
   --add-user-data="hourly-$(date +%Y%m%d-%H)" \
   --config="$CONFIG" >> "$LOG" 2>&1
 

@@ -26,7 +26,7 @@ Before running tests:
 
 2. **WAL-G must be installed**:
    ```bash
-   /usr/local/wal-g/bin/wal-g --version
+   /usr/local/bin/wal-g --version
    ```
 
 ### Test Coverage
