@@ -35,11 +35,16 @@ make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
 # Apply patch to fix plpython3u dependency issue in regression tests
 PATCH_FILE="$(dirname "$(readlink -f "$0")")/postgis-plpython-fix.patch"
 if [ -f "$PATCH_FILE" ]; then
-  echo "    Applying PostGIS regression test fix for plpython3u..."
-  patch -p1 < "$PATCH_FILE" || {
-    echo "Warning: Failed to apply PostGIS regression test patch"
-    echo "This may cause tiger geocoder tests to fail"
-  }
+  # Check if patch is already applied by looking for template1 in run_test.pl
+  if grep -q "template=template0" regress/run_test.pl 2>/dev/null; then
+    echo "    Applying PostGIS regression test fix for plpython3u..."
+    patch -p1 < "$PATCH_FILE" || {
+      echo "Warning: Failed to apply PostGIS regression test patch"
+      echo "This may cause tiger geocoder tests to fail"
+    }
+  else
+    echo "    PostGIS regression test patch already applied (using template1)"
+  fi
 else
   echo "Warning: PostGIS regression test patch not found at $PATCH_FILE"
 fi

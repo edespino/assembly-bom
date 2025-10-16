@@ -58,10 +58,16 @@ fi
 
 # Ensure plpython3u is available in template1 for tiger geocoder
 log "Ensuring plpython3u extension is available for tiger geocoder"
-if psql -d template1 -c "CREATE EXTENSION IF NOT EXISTS plpython3u;" 2>&1 | grep -q "already exists\|CREATE EXTENSION"; then
-  log "✅ plpython3u extension ready"
+PLPYTHON_RESULT=$(psql -d template1 -c "CREATE EXTENSION IF NOT EXISTS plpython3u;" 2>&1)
+PLPYTHON_EXIT=$?
+
+if [ $PLPYTHON_EXIT -eq 0 ]; then
+  log "✅ plpython3u extension ready in template1"
+  # Verify it's actually installed
+  psql -d template1 -c "\dx plpython3u" | grep -q "plpython3u" && log "✅ Verified plpython3u is installed"
 else
-  log "⚠️  plpython3u extension setup failed, tiger geocoder tests may fail"
+  log "⚠️  plpython3u extension setup failed: $PLPYTHON_RESULT"
+  log "⚠️  Tiger geocoder tests will fail"
 fi
 
 # Verify demo environment exists

@@ -49,25 +49,35 @@ CGAL 5.6.1 → SFCGAL 1.4.1 → GEOS 3.11.0 → PROJ 6.0.0 → GDAL 3.5.3 → Po
 ## PostGIS Development and Debugging
 
 ### Crash Testing Framework
-PostGIS has known stability issues. The crash testing framework provides systematic reproduction:
+PostGIS has memory corruption issues in distributed query scenarios. The crash testing framework provides systematic reproduction:
 
 **Files**:
-- `stations/extensions/postgis/crash-test.sh` - Comprehensive crash reproduction
-- `stations/extensions/postgis/postgis-crash-test.sql` - ST_Buffer crash scenario
-- `stations/extensions/postgis/cloudberry-postgis-examples-test.sql` - Documentation examples
+- `stations/extensions/postgis/crash-test.sh` - Automated crash reproduction and analysis
+- `stations/extensions/postgis/postgis-distributed-crash-test.sql` - ⚠️ **Reproduces crash** (distributed queries)
+- `stations/extensions/postgis/postgis-intensive-raster-test.sql` - ✅ Stress test (85+ ops, passes)
+- `stations/extensions/postgis/postgis-crash-test.sql` - ✅ Basic validation (passes)
+- `stations/extensions/postgis/POSTGIS-CRASH-ANALYSIS.md` - Technical root cause analysis
 
 **Usage**:
 ```bash
 ./assemble.sh --run --component postgis --steps crash-test
 ```
 
-**Expected Behavior**: This step intentionally crashes the database for debugging purposes and generates core dumps for analysis.
+**Expected Behavior**: This step **intentionally triggers memory corruption** in distributed queries:
+- Tests 1-4: Basic operations ✅ pass
+- Test 5: ST_Contains with cross-segment joins ❌ **crashes** (mcxt.c:933)
+- Test 7: ST_Intersection with TOAST geometries ❌ **crashes** (mcxt.c:933)
+- Generates core dumps for automated analysis
+- Detects crash patterns: `[MEMORY-CONTEXT-CORRUPTION] [GEOMETRY-CACHE] [DISTRIBUTED-GEOMETRY]`
+
+**Root Cause**: PostGIS geometry cache (`shared_gserialized_ref`) assumes single-process memory management. In Cloudberry/Greenplum, geometries cross segment boundaries via motion nodes, causing memory context validation failures.
 
 ### PostGIS Testing Configuration
-- **Tiger Geocoder**: Requires plpython3u extension setup in template1
-- **Regression Test Patch**: Applied during build to use template1 instead of template0
+- **Tiger Geocoder**: Requires plpython3u extension - automatically created in template1 during test step
+- **Regression Test Patch**: Applied during build to use template1 instead of template0 (idempotent)
 - **Test Flags**: `--tiger --sfcgal --raster --extension` enabled by default
 - **Core Dump Analysis**: Automated GDB analysis with pattern recognition
+- **Known Issues**: Some raster map algebra tests may crash due to upstream PostGIS memory management issues
 
 ## Common Development Issues
 
@@ -95,12 +105,21 @@ PostGIS has known stability issues. The crash testing framework provides systema
 - Error patterns: Look for configure failures, missing dependencies, compilation errors
 
 ### PostGIS Stability Issues
-**Known Crash Patterns**:
-- **AVX512-MEMMOVE**: Memory corruption in AVX512 optimized operations
-- **TOAST-CORRUPTION**: TOAST data handling issues with large geometries
-- **POSTGIS-FUNCTION**: ST_AsText(), ST_Buffer() crashes in distributed queries
+**Known Crash Patterns** (automatically detected by crash-test.sh):
+- **MEMORY-CONTEXT-CORRUPTION**: mcxt.c:933 assertion failure (PRIMARY ISSUE)
+- **GEOMETRY-CACHE**: PostGIS geometry cache corruption in `shared_gserialized_ref`
+- **DISTRIBUTED-GEOMETRY**: ST_Contains, ST_Intersection crashes in cross-segment joins
+- **MOTION-NODE**: Geometry data crossing segment boundaries
+- **TOAST-CORRUPTION**: Large TOAST geometries with distributed operations
 
-**Core Dump Analysis**: Automated pattern recognition in crash-test.sh identifies these signatures.
+**Status**:
+- ❌ Distributed queries with geometry joins: **CRASH CONFIRMED** (upstream bug)
+- ✅ Single-segment queries: **WORK CORRECTLY**
+- ✅ Simple geometry operations: **WORK CORRECTLY**
+
+**Workaround**: Avoid cross-segment geometry joins in production. Use replicated tables for small geometry reference data.
+
+**Core Dump Analysis**: Automated pattern recognition in crash-test.sh identifies crash signatures and generates detailed GDB analysis reports.
 
 ## File Organization
 

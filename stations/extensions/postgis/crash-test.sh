@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # PostGIS Crash Test Step - Assembly BOM Framework Integration
-# Executes PostGIS crash scenario testing via assemble.sh
+# Executes PostGIS distributed crash scenario testing via assemble.sh
 # Usage: ./assemble.sh --run --component postgis --steps crash-test
-# This is a temporary step for crash reproduction and debugging
+# This step reproduces memory corruption in distributed query scenarios
 
 # Import common functions
 source "$(dirname "$0")/../../generic/common.sh"
@@ -13,15 +13,15 @@ source "$(dirname "$0")/../../generic/common.sh"
 : "${NAME:?NAME environment variable must be set (should be 'postgis')}"
 
 # Configuration
-readonly CRASH_TEST_SQL="$(dirname "$0")/postgis-crash-test.sql"
-readonly EXAMPLES_TEST_SQL="$(dirname "$0")/cloudberry-postgis-examples-test.sql"
+readonly CRASH_TEST_SQL="$(dirname "$0")/postgis-distributed-crash-test.sql"
+readonly BASIC_TEST_SQL="$(dirname "$0")/postgis-crash-test.sql"
 readonly CORE_DIR="/var/crash"
-readonly TEST_TIMEOUT=90
+readonly TEST_TIMEOUT=120
 
 log_header "PostGIS Crash Test Step - Assembly BOM Integration"
 log_info "Component: $NAME"
-log_info "Purpose: Crash reproduction and core dump analysis"
-log_info "Framework: Assembly BOM temporary testing step"
+log_info "Purpose: Distributed query memory corruption reproduction"
+log_info "Framework: Assembly BOM crash testing (Cloudberry-specific)"
 
 # Validate test files exist
 if [[ ! -f "$CRASH_TEST_SQL" ]]; then
@@ -84,9 +84,10 @@ if [[ "$CORE_PATTERN" == "|"* ]] || [[ -z "$CORE_PATTERN" ]]; then
 fi
 
 # Execute PostGIS crash test scenarios
-log_step "Executing PostGIS crash test scenarios"
-log_warning "⚠️  This step intentionally crashes the database for debugging"
+log_step "Executing PostGIS distributed crash test scenarios"
+log_warning "⚠️  This test triggers memory corruption in cross-segment queries"
 log_info "Test will timeout after $TEST_TIMEOUT seconds to prevent hanging"
+log_info "Expected failures: Tests 5 (ST_Contains) and 7 (ST_Intersection)"
 
 # Create timestamped log file
 CRASH_LOG="postgis-crash-test-$(date +%Y%m%d-%H%M%S).log"
@@ -197,7 +198,27 @@ EOF
         log_step "Crash Pattern Analysis"
         DETECTED_PATTERNS=""
 
-        # Check for known crash signatures
+        # Check for known crash signatures - priority to most specific patterns
+        if grep -i "mcxt.c:933\|MemoryContextContains" "$ANALYSIS_FILE" >/dev/null 2>&1; then
+            log_warning "🔍 CRITICAL: Memory context corruption detected (mcxt.c:933)"
+            DETECTED_PATTERNS="$DETECTED_PATTERNS [MEMORY-CONTEXT-CORRUPTION]"
+        fi
+
+        if grep -i "shared_gserialized_ref\|geometry cache" "$ANALYSIS_FILE" >/dev/null 2>&1; then
+            log_warning "🔍 PostGIS geometry cache corruption detected"
+            DETECTED_PATTERNS="$DETECTED_PATTERNS [GEOMETRY-CACHE]"
+        fi
+
+        if grep -i "ST_Contains\|ST_Intersection\|ST_Intersects" "$ANALYSIS_FILE" >/dev/null 2>&1; then
+            log_warning "🔍 Distributed geometry predicate crash detected"
+            DETECTED_PATTERNS="$DETECTED_PATTERNS [DISTRIBUTED-GEOMETRY]"
+        fi
+
+        if grep -i "motion\|slice.*seg[0-9]" "$ANALYSIS_FILE" >/dev/null 2>&1; then
+            log_warning "🔍 Cross-segment motion node crash detected"
+            DETECTED_PATTERNS="$DETECTED_PATTERNS [MOTION-NODE]"
+        fi
+
         if grep -i "memmove.*avx512" "$ANALYSIS_FILE" >/dev/null 2>&1; then
             log_warning "🔍 AVX512 memory operation crash detected"
             DETECTED_PATTERNS="$DETECTED_PATTERNS [AVX512-MEMMOVE]"
@@ -206,16 +227,6 @@ EOF
         if grep -i "pg_detoast_datum_copy" "$ANALYSIS_FILE" >/dev/null 2>&1; then
             log_warning "🔍 TOAST data handling crash detected"
             DETECTED_PATTERNS="$DETECTED_PATTERNS [TOAST-CORRUPTION]"
-        fi
-
-        if grep -i "ST_Buffer\|ST_AsText\|PostGIS" "$ANALYSIS_FILE" >/dev/null 2>&1; then
-            log_warning "🔍 PostGIS function crash confirmed"
-            DETECTED_PATTERNS="$DETECTED_PATTERNS [POSTGIS-FUNCTION]"
-        fi
-
-        if grep -i "evaluate_expr\|simplify_function" "$ANALYSIS_FILE" >/dev/null 2>&1; then
-            log_warning "🔍 Query optimization crash detected"
-            DETECTED_PATTERNS="$DETECTED_PATTERNS [QUERY-OPTIMIZATION]"
         fi
 
         # Add pattern analysis to report
@@ -251,8 +262,10 @@ Debugging Commands:
 - Manual GDB: gdb /usr/local/cloudberry/bin/postgres $LATEST_CORE
 - Quick trace: gdb --batch --ex bt --ex quit /usr/local/cloudberry/bin/postgres $LATEST_CORE
 
-Status: PostGIS has critical reproducible crash issues requiring investigation.
-Priority: HIGH - Affects production stability
+Status: PostGIS has critical memory corruption in distributed queries.
+Root Cause: Geometry cache + cross-segment operations (mcxt.c:933)
+Priority: HIGH - Affects distributed spatial analytics
+Upstream Issue: PostGIS needs distributed query awareness
 EOF
 
         TEST_RESULT="CRASH_REPRODUCED"
@@ -308,13 +321,17 @@ log_info "  💾 Core files: $CORE_DIR/"
 if [[ "$TEST_RESULT" == "CRASH_REPRODUCED" ]]; then
     log_warning ""
     log_warning "⚠️  CRITICAL FINDING:"
-    log_warning "PostGIS has reproducible crash issues that affect database stability."
-    log_warning "These crashes occur during basic PostGIS operations and generate core dumps."
+    log_warning "PostGIS geometry cache causes memory corruption in distributed queries."
+    log_warning "Root cause: mcxt.c:933 assertion failure during cross-segment operations."
+    log_warning "Affects: ST_Contains, ST_Intersection with distributed joins."
     log_warning ""
-    log_info "Next steps for debugging:"
+    log_info "This is an upstream PostGIS bug requiring distributed query awareness."
+    log_info "Single-segment queries work correctly - only cross-segment operations crash."
+    log_info ""
+    log_info "Next steps:"
     log_info "  1. Review analysis report: $ANALYSIS_FILE"
-    log_info "  2. Manual GDB analysis: gdb /usr/local/cloudberry/bin/postgres $LATEST_CORE"
-    log_info "  3. Report to development team with crash patterns identified"
+    log_info "  2. See detailed analysis: stations/extensions/postgis/POSTGIS-CRASH-ANALYSIS.md"
+    log_info "  3. Workaround: Avoid cross-segment geometry joins in production"
 fi
 
 log_header "Assembly BOM PostGIS Crash Test Complete"
