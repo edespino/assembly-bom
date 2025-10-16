@@ -30,7 +30,14 @@ echo "    Working directory: $POSTGIS_BUILD_DIR"
 NPROC=$(nproc 2>/dev/null || echo 4)
 echo "    Using $NPROC parallel jobs"
 
-make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
+# Debug: Show environment CFLAGS if set
+if [ -n "${CFLAGS:-}" ]; then
+  echo "    Environment CFLAGS: ${CFLAGS}"
+  echo "    Passing to make as CFLAGS_EXTRA"
+  make -j"$NPROC" CFLAGS_EXTRA="${CFLAGS}" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
+else
+  make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
+fi
 
 # Apply patch to fix plpython3u dependency issue in regression tests
 PATCH_FILE="$(dirname "$(readlink -f "$0")")/postgis-plpython-fix.patch"

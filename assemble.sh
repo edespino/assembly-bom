@@ -46,8 +46,8 @@ if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:t:hlrdfGSECDT
-LONGOPTS=component:,steps:,test-config:,help,list,run,dry-run,force
+OPTIONS=c:s:t:hlrdfgxGSECDT
+LONGOPTS=component:,steps:,test-config:,help,list,run,dry-run,force,debug,debug-extensions
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
@@ -58,6 +58,8 @@ TEST_CONFIG_OVERRIDE=""
 DO_RUN=false
 DO_DRY_RUN=false
 FORCE_RESET=false
+DEBUG_BUILD=false
+DEBUG_EXTENSIONS_FLAG=false
 
 SHOW_LIST=false
 SHOW_GIT=false
@@ -89,23 +91,27 @@ while true; do
     -f|--force) FORCE_RESET=true; shift ;;
     -r|--run) DO_RUN=true; shift ;;
     -d|--dry-run) DO_DRY_RUN=true; shift ;;
+    -g|--debug) DEBUG_BUILD=true; shift ;;
+    -x|--debug-extensions) DEBUG_EXTENSIONS_FLAG=true; shift ;;
     -h|--help)
       echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>] [-f]"
       echo ""
-      echo "  -r, --run            Run BOM steps (must be explicitly provided)"
-      echo "  -l                   List component names by layer"
-      echo "  -G                   Show Git info (url, branch)"
-      echo "  -S                   Show steps"
-      echo "  -E                   Show environment variables"
-      echo "  -C                   Show configure flags"
-      echo "  -T                   Show test configurations"
-      echo "  -D                   Show all details (-GSECT)"
-      echo "  -f, --force          Prompt to clean \$PARTS_DIR/<component> before cloning"
-      echo "  -c, --component      Filter components by name"
-      echo "  -s, --steps          Override steps (comma-separated)"
-      echo "  -t, --test-config    Set test configuration for components"
-      echo "  -d, --dry-run        Show build order only"
-      echo "  -h, --help           Show this help message"
+      echo "  -r, --run               Run BOM steps (must be explicitly provided)"
+      echo "  -l                      List component names by layer"
+      echo "  -G                      Show Git info (url, branch)"
+      echo "  -S                      Show steps"
+      echo "  -E                      Show environment variables"
+      echo "  -C                      Show configure flags"
+      echo "  -T                      Show test configurations"
+      echo "  -D                      Show all details (-GSECT)"
+      echo "  -f, --force             Prompt to clean \$PARTS_DIR/<component> before cloning"
+      echo "  -c, --component         Filter components by name"
+      echo "  -s, --steps             Override steps (comma-separated)"
+      echo "  -t, --test-config       Set test configuration for components"
+      echo "  -d, --dry-run           Show build order only"
+      echo "  -g, --debug             Enable debug build (CFLAGS=\"-O0 -g3 -ggdb3 -fno-omit-frame-pointer -fno-inline -Wno-suggest-attribute=format\")"
+      echo "  -x, --debug-extensions  Enable Cloudberry debug extensions (DEBUG_EXTENSIONS=1)"
+      echo "  -h, --help              Show this help message"
       exit 0
       ;;
     --) shift; break ;;
@@ -277,6 +283,20 @@ for LAYER in dependencies core extensions utilities components; do
     if [[ -n "$TEST_CONFIG_OVERRIDE" ]]; then
       export TEST_CONFIG_NAME="$TEST_CONFIG_OVERRIDE"
       echo "[assemble]     ENV: TEST_CONFIG_NAME=$TEST_CONFIG_OVERRIDE"
+    fi
+
+    # Export debug build flags if enabled
+    if [[ "$DEBUG_BUILD" == true ]]; then
+      export CFLAGS="-O0 -g3 -ggdb3 -fno-omit-frame-pointer -fno-inline -Wno-suggest-attribute=format -Wno-maybe-uninitialized"
+      export CXXFLAGS="-O0 -g3 -ggdb3 -fno-omit-frame-pointer -fno-inline -Wno-suggest-attribute=format -Wno-maybe-uninitialized"
+      echo "[assemble]     DEBUG: CFLAGS=$CFLAGS"
+      echo "[assemble]     DEBUG: CXXFLAGS=$CXXFLAGS"
+    fi
+
+    # Export Cloudberry debug extensions flag if enabled
+    if [[ "$DEBUG_EXTENSIONS_FLAG" == true ]]; then
+      export DEBUG_EXTENSIONS=1
+      echo "[assemble]     DEBUG: DEBUG_EXTENSIONS=1"
     fi
 
     STEP_TIMINGS=()

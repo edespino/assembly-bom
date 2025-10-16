@@ -8,9 +8,6 @@ products:
           branch: main
           configure_flags: |
             --disable-external-fts
-            --enable-debug
-            --enable-cassert
-            --enable-debug-extensions
             --enable-gpcloud
             --enable-gpfdist
             --enable-ic-proxy
