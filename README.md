@@ -1,6 +1,6 @@
 # 🔩 Assembly BOM
 
-**Assembly BOM** is a Software Bill of Materials (SBOM) development tool that provides systematic build orchestration for the Cloudberry Database ecosystem. It uses a declarative `bom.yaml` to define components, dependencies, and build steps — enabling reproducible, portable builds with release engineering discipline.
+**Assembly BOM** is a Software Bill of Materials (SBOM) development tool that provides systematic build orchestration for the Apache Cloudberry ecosystem. It uses a declarative `bom.yaml` to define components, dependencies, and build steps — enabling reproducible, portable builds with release engineering discipline.
 
 ---
 
@@ -49,7 +49,7 @@ assembly-bom/
 
 ### Build Order (Dependency Hierarchy)
 1. **Dependencies** - External libraries (CGAL, SFCGAL, GEOS, PROJ, GDAL)
-2. **Core** - Cloudberry Database engine
+2. **Core** - Apache Cloudberry engine
 3. **Extensions** - Database extensions (PostGIS, PXF)
 
 ### Station-Based Pipeline
@@ -179,7 +179,7 @@ NAME=postgis ./stations/extensions/postgis/build.sh
 
 ## 🧪 Testing Framework
 
-### Cloudberry Database Tests
+### Apache Cloudberry Tests
 ```bash
 # Unit tests
 ./assemble.sh --run --component cloudberry --steps unittest
@@ -209,7 +209,7 @@ NAME=postgis ./stations/extensions/postgis/build.sh
 # Development tools
 bash, git, yq (v4+)
 
-# Cloudberry Database dependencies
+# Apache Cloudberry dependencies
 gcc, make, readline-devel, zlib-devel, openssl-devel
 
 # PostGIS geospatial stack dependencies
@@ -230,7 +230,7 @@ USE_PGXS=1                           # Use PostgreSQL extension build system
 
 ## 🏭 Component Details
 
-### Core: Cloudberry Database
+### Core: Apache Cloudberry
 - **Source**: Apache Cloudberry
 - **Features**: Distributed database with debug mode, extensions, optimizers
 - **Test Configs**: Default, optimizer-off, PAX storage

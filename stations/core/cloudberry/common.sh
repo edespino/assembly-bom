@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
 # File     : stations/core/cloudberry/common.sh
-# Purpose  : Common functions for Cloudberry Database build scripts
+# Purpose  : Common functions for Apache Cloudberry build scripts
 # --------------------------------------------------------------------
 
 # Function to setup Xerces-C environment and libraries

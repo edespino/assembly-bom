@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/../../generic/common.sh"
 component_name="cloudberry"
 step_name="gpstart"
 
-log_info "Starting Cloudberry Database..."
+log_info "Starting Apache Cloudberry..."
 
 # Source the gpdemo environment if available
 GPDEMO_ENV="${PARTS_DIR}/${component_name}/gpAux/gpdemo/gpdemo-env.sh"
@@ -23,4 +23,4 @@ fi
 log_info "Executing: gpstart -a"
 gpstart -a
 
-log_success "Cloudberry Database started successfully"
+log_success "Apache Cloudberry started successfully"

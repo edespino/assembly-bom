@@ -1,13 +1,13 @@
-# PostGIS Validation Report - Cloudberry Database
+# PostGIS Validation Report - Apache Cloudberry
 
 **Date**: September 25, 2025
 **PostGIS Version**: 3.3 USE_GEOS=1 USE_PROJ=1 USE_STATS=1
-**Cloudberry Database**: 1.6.0
+**Apache Cloudberry**: 1.6.0
 **Test Environment**: Rocky Linux 9, 4GB RAM
 
 ## Executive Summary
 
-PostGIS 3.3.2 integration with Cloudberry Database shows **partial functionality** with critical stability issues. Basic spatial operations work correctly, but complex geometry operations cause repeated segmentation faults and server crashes.
+PostGIS 3.3.2 integration with Apache Cloudberry shows **partial functionality** with critical stability issues. Basic spatial operations work correctly, but complex geometry operations cause repeated segmentation faults and server crashes.
 
 **Status**: ⚠️ **CAUTION - Limited Production Readiness**
 
@@ -173,4 +173,4 @@ Use this checklist for future PostGIS testing:
 
 ---
 
-**⚠️ PRODUCTION WARNING**: PostGIS integration with Cloudberry Database has critical stability issues. Use only for basic point geometry operations until memory corruption bugs are resolved.
+**⚠️ PRODUCTION WARNING**: PostGIS integration with Apache Cloudberry has critical stability issues. Use only for basic point geometry operations until memory corruption bugs are resolved.

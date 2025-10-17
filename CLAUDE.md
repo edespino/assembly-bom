@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Assembly BOM is a Software Bill of Materials (SBOM) development tool for the Cloudberry Database ecosystem. See README.md for user documentation and architecture overview.
+Assembly BOM is a Software Bill of Materials (SBOM) development tool for the Apache Cloudberry ecosystem. See README.md for user documentation and architecture overview.
 
 ## AI Development Workflow
 

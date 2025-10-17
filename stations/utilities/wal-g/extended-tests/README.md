@@ -4,7 +4,7 @@ This directory contains an adapted test suite from the native wal-g project, mod
 
 ## Overview
 
-The extended test suite validates comprehensive wal-g functionality with Cloudberry Database, including:
+The extended test suite validates comprehensive wal-g functionality with Apache Cloudberry, including:
 
 - **Full backup and restore workflows**
 - **Delta (incremental) backups**
