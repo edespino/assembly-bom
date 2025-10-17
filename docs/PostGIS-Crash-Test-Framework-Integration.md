@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document describes the integration of PostGIS crash testing capabilities into the Assembly-BOM framework, providing systematic crash reproduction and analysis for debugging critical PostGIS stability issues in Cloudberry Database.
+This document describes the integration of PostGIS crash testing capabilities into the Assembly-BOM framework, providing systematic crash reproduction and analysis for debugging critical PostGIS stability issues in Apache Cloudberry.
 
 ## Framework Integration
 
@@ -161,7 +161,7 @@ This crash test integration is **temporary** and designed specifically for:
 
 ### Removal Criteria
 This step should be removed when:
-- ✅ PostGIS crashes are resolved in Cloudberry Database
+- ✅ PostGIS crashes are resolved in Apache Cloudberry
 - ✅ No core dumps are generated during crash test execution
 - ✅ ST_Buffer and ST_AsText operations work reliably
 

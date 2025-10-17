@@ -6,7 +6,7 @@
 
 ## Overview
 
-The PostGIS core dump test step provides a controlled way to reproduce the critical PostGIS stability issues identified in Cloudberry Database. This test is essential for:
+The PostGIS core dump test step provides a controlled way to reproduce the critical PostGIS stability issues identified in Apache Cloudberry. This test is essential for:
 
 - **Bug Reproduction**: Reliable crash generation for debugging
 - **Regression Testing**: Verifying if fixes resolve the crashes

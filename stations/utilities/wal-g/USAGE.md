@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers using WAL-G for backup and recovery operations with Cloudberry Database.
+This guide covers using WAL-G for backup and recovery operations with Apache Cloudberry.
 
 ## Table of Contents
 

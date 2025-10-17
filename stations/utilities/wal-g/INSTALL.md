@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers installing WAL-G after building it for use with Cloudberry Database.
+This guide covers installing WAL-G after building it for use with Apache Cloudberry.
 
 ## Installation Methods
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
 # File     : stations/extensions/postgis/test.sh
-# Purpose  : Run comprehensive PostGIS regression tests in Cloudberry Database
+# Purpose  : Run comprehensive PostGIS regression tests in Apache Cloudberry
 # Inputs   :
 #   - NAME                    : component name (should be "postgis")
 #   - DISABLE_EXTENSION_TESTS : skips regression tests if set true/1

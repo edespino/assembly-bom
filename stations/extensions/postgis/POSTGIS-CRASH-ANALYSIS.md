@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-PostGIS 3.3.2 exhibits memory corruption issues in **distributed query scenarios** specific to Cloudberry Database / Greenplum. The root cause is the geometry cache (`shared_gserialized_ref`) incorrectly managing memory contexts during cross-segment operations.
+PostGIS 3.3.2 exhibits memory corruption issues in **distributed query scenarios** specific to Apache Cloudberry / Greenplum. The root cause is the geometry cache (`shared_gserialized_ref`) incorrectly managing memory contexts during cross-segment operations.
 
 ## Crash Pattern Identification
 

@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/../../generic/common.sh"
 component_name="cloudberry"
 step_name="gpstop"
 
-log_info "Stopping Cloudberry Database..."
+log_info "Stopping Apache Cloudberry..."
 
 # Source the gpdemo environment if available
 GPDEMO_ENV="${PARTS_DIR}/${component_name}/gpAux/gpdemo/gpdemo-env.sh"
@@ -23,4 +23,4 @@ fi
 log_info "Executing: gpstop -a"
 gpstop -a
 
-log_success "Cloudberry Database stopped successfully"
+log_success "Apache Cloudberry stopped successfully"
