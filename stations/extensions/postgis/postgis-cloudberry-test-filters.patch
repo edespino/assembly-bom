@@ -1,0 +1,38 @@
+diff --git a/postgis/build/postgis-3.3.2/regress/run_test.pl b/postgis/build/postgis-3.3.2/regress/run_test.pl
+index 87e4e81..c5d0317 100755
+--- a/postgis/build/postgis-3.3.2/regress/run_test.pl
++++ b/postgis/build/postgis-3.3.2/regress/run_test.pl
+@@ -812,6 +812,10 @@ sub run_simple_test
+ 	@lines = grep(!/^LINE \d/, @lines);
+ 	@lines = grep(!/^\s+$/, @lines);
+   @lines = grep(!/NOTICE:  Table doesn't have 'distributed by' clause/i, @lines);
++  # Cloudberry-specific filtering
++  @lines = grep(!/^WARNING:  autovacuum is not supported in (Greenplum|Cloudberry)/, @lines);
++  @lines = grep(!/^NOTICE:  One or more columns in the following table.*do not have statistics/, @lines);
++  @lines = grep(!/^HINT:  For non-partitioned tables, run analyze/, @lines);
+ 
+ 	# Morph values into expected forms
+ 	for ( my $i = 0; $i < @lines; $i++ )
+@@ -823,6 +827,13 @@ sub run_simple_test
+ 		$lines[$i] =~ s/Self-intersection .*/Self-intersection/;
+ 		$lines[$i] =~ s/^ROLLBACK/COMMIT/;
+ 		$lines[$i] =~ s/^psql.*(NOTICE|WARNING|ERROR):/\1:/g;
++		# Cloudberry-specific morphing
++		# Remove segment identifiers like (seg0 slice1 10.0.1.15:7002 pid=12345)
++		$lines[$i] =~ s/\s*\(seg\d+ slice\d+ [0-9.:]+ pid=\d+\)//g;
++		# Remove duplicate source file locations (e.g., "(file.c:123) (file.c:123)" -> "(file.c:123)")
++		$lines[$i] =~ s/(\([a-z_]+\.c:\d+\))\s+\1/$1/g;
++		# Remove source file locations entirely for consistency
++		$lines[$i] =~ s/\s*\([a-z_]+\.c:\d+\)//g;
+ 	}
+ 
+ 	# Write out output file
+@@ -1344,7 +1355,7 @@ sub count_postgis_objects
+ ##################################################################
+ sub create_db
+ {
+-	my $createcmd = "createdb --encoding=UTF-8 --template=template0 --lc-collate=C $DB > $REGRESS_LOG";
++	my $createcmd = "createdb --encoding=UTF-8 --template=template1 $DB > $REGRESS_LOG";
+ 	return system($createcmd);
+ }
+ 

@@ -39,21 +39,28 @@ else
   make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
 fi
 
-# Apply patch to fix plpython3u dependency issue in regression tests
-PATCH_FILE="$(dirname "$(readlink -f "$0")")/postgis-plpython-fix.patch"
+# Apply patch for Cloudberry-specific test filtering and plpython3u fix
+# Determine script directory (works for both direct execution and sourcing)
+if [ -n "${BASH_SOURCE[0]:-}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
+PATCH_FILE="${SCRIPT_DIR}/postgis-cloudberry-test-filters.patch"
+
 if [ -f "$PATCH_FILE" ]; then
-  # Check if patch is already applied by looking for template1 in run_test.pl
-  if grep -q "template=template0" regress/run_test.pl 2>/dev/null; then
-    echo "    Applying PostGIS regression test fix for plpython3u..."
-    patch -p1 < "$PATCH_FILE" || {
-      echo "Warning: Failed to apply PostGIS regression test patch"
-      echo "This may cause tiger geocoder tests to fail"
-    }
+  # Check if patch is already applied by looking for Cloudberry-specific filtering
+  if grep -q "# Cloudberry-specific filtering" regress/run_test.pl 2>/dev/null; then
+    echo "    PostGIS Cloudberry test filters already applied"
   else
-    echo "    PostGIS regression test patch already applied (using template1)"
+    echo "    Applying PostGIS Cloudberry test filters and template1 fix..."
+    patch -p1 < "$PATCH_FILE" || {
+      echo "Warning: Failed to apply PostGIS Cloudberry test filter patch"
+      echo "This may cause test failures due to autovacuum warnings and error message format differences"
+    }
   fi
 else
-  echo "Warning: PostGIS regression test patch not found at $PATCH_FILE"
+  echo "Warning: PostGIS Cloudberry test filter patch not found at $PATCH_FILE"
 fi
 
 echo "✅ build step complete for $NAME"

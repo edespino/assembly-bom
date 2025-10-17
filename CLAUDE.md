@@ -74,10 +74,15 @@ PostGIS has memory corruption issues in distributed query scenarios. The crash t
 
 ### PostGIS Testing Configuration
 - **Tiger Geocoder**: Requires plpython3u extension - automatically created in template1 during test step
-- **Regression Test Patch**: Applied during build to use template1 instead of template0 (idempotent)
+- **Regression Test Filtering**: `postgis-cloudberry-test-filters.patch` applied during build for Cloudberry compatibility:
+  - Filters autovacuum warnings (Cloudberry doesn't support autovacuum)
+  - Removes segment identifiers from error messages (seg0 slice1 IP:port pid=...)
+  - Strips source file locations from errors for consistency (file.c:line)
+  - Removes statistics notices and hints
+  - Changes test database template from template0 to template1 (enables plpython3u)
 - **Test Flags**: `--tiger --sfcgal --raster --extension` enabled by default
 - **Core Dump Analysis**: Automated GDB analysis with pattern recognition
-- **Known Issues**: Some raster map algebra tests may crash due to upstream PostGIS memory management issues
+- **Expected Test Results**: With filtering patch, most cosmetic differences resolved; remaining failures mainly due to row ordering in distributed queries
 
 ## Common Development Issues
 

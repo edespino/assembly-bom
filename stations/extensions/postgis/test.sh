@@ -103,12 +103,12 @@ echo "Started: $(date)" >> "$TEST_LOG"
 echo "" >> "$TEST_LOG"
 
 # Run the full PostGIS regression test suite
-if make installcheck 2>&1 | tee -a "$TEST_LOG"; then
-  log "✅ PostGIS core regression tests passed"
+TEST_FAILED=0
+if ! make installcheck 2>&1 | tee -a "$TEST_LOG"; then
+  log "⚠️  PostGIS core regression tests had failures"
+  TEST_FAILED=1
 else
-  echo "[test-postgis] ERROR: PostGIS core regression tests failed" >&2
-  echo "[test-postgis] Check log file: $POSTGIS_BUILD_DIR/$TEST_LOG" >&2
-  exit 1
+  log "✅ PostGIS core regression tests passed"
 fi
 
 # Test PostGIS extensions if available
@@ -183,8 +183,8 @@ DROP TABLE test_geometries;
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
   log "✅ PostGIS functional validation passed"
 else
-  echo "[test-postgis] ERROR: PostGIS functional validation failed" >&2
-  exit 1
+  log "⚠️  PostGIS functional validation failed"
+  TEST_FAILED=1
 fi
 
 # Test all PostGIS extensions availability
@@ -286,15 +286,21 @@ ORDER BY name;
 if [ ${PIPESTATUS[0]} -eq 0 ]; then
   log "✅ PostGIS extension tests completed successfully"
 else
-  echo "[test-postgis] ERROR: PostGIS extension tests failed" >&2
-  exit 1
+  log "⚠️  PostGIS extension tests failed"
+  TEST_FAILED=1
 fi
 
 echo "" >> "$TEST_LOG"
 echo "Completed: $(date)" >> "$TEST_LOG"
 echo "=========================" >> "$TEST_LOG"
 
-log "PostGIS regression testing completed successfully"
-log "Detailed test results: $POSTGIS_BUILD_DIR/$TEST_LOG"
-
-section_complete "test: $NAME" "$start_time"
+if [ $TEST_FAILED -eq 0 ]; then
+  log "PostGIS regression testing completed successfully"
+  log "Detailed test results: $POSTGIS_BUILD_DIR/$TEST_LOG"
+  section_complete "test: $NAME" "$start_time"
+else
+  echo "[test-postgis] ERROR: PostGIS tests failed" >&2
+  echo "[test-postgis] Check log file: $POSTGIS_BUILD_DIR/$TEST_LOG" >&2
+  section_complete "test: $NAME (FAILED)" "$start_time"
+  exit 1
+fi
