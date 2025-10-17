@@ -1,8 +1,20 @@
-diff --git a/postgis/build/postgis-3.3.2/regress/run_test.pl b/postgis/build/postgis-3.3.2/regress/run_test.pl
+diff --git a/regress/run_test.pl b/regress/run_test.pl
 index 87e4e81..c5d0317 100755
---- a/postgis/build/postgis-3.3.2/regress/run_test.pl
-+++ b/postgis/build/postgis-3.3.2/regress/run_test.pl
-@@ -812,6 +812,10 @@ sub run_simple_test
+--- a/regress/run_test.pl
++++ b/regress/run_test.pl
+@@ -52,7 +52,10 @@ our $sysdiff = !system("/usr/local/greenplum-db/lib/postgresql/pgxs/src/test/re
+ our $DB = $ENV{"POSTGIS_REGRESS_DB"} || "postgis_reg";
+ our $REGDIR = abs_path(dirname($0));
+ our $TOP_BUILDDIR = $ENV{"POSTGIS_TOP_BUILD_DIR"} || ${REGDIR} . '/..';
+-our $sysdiff = !system("/usr/local/greenplum-db/lib/postgresql/pgxs/src/test/regress/gpdiff.pl -b -w -gpd_init " . $REGDIR . "/global_init_file --strip-trailing-cr $0 $0 2> /dev/null");
++# Use GPHOME if available (Cloudberry/Greenplum), otherwise fall back to hardcoded path
++our $gpdiff_base = $ENV{"GPHOME"} || "/usr/local/greenplum-db";
++our $gpdiff_path = "$gpdiff_base/lib/postgresql/pgxs/src/test/regress/gpdiff.pl";
++our $sysdiff = !system("$gpdiff_path -b -w -gpd_init " . $REGDIR . "/global_init_file --strip-trailing-cr $0 $0 2> /dev/null");
+
+ ##################################################################
+ # Parse command line opts
+@@ -812,6 +815,10 @@ sub run_simple_test
  	@lines = grep(!/^LINE \d/, @lines);
  	@lines = grep(!/^\s+$/, @lines);
    @lines = grep(!/NOTICE:  Table doesn't have 'distributed by' clause/i, @lines);
@@ -10,7 +22,7 @@ index 87e4e81..c5d0317 100755
 +  @lines = grep(!/^WARNING:  autovacuum is not supported in (Greenplum|Cloudberry)/, @lines);
 +  @lines = grep(!/^NOTICE:  One or more columns in the following table.*do not have statistics/, @lines);
 +  @lines = grep(!/^HINT:  For non-partitioned tables, run analyze/, @lines);
- 
+
  	# Morph values into expected forms
  	for ( my $i = 0; $i < @lines; $i++ )
 @@ -823,6 +827,13 @@ sub run_simple_test
@@ -35,4 +47,14 @@ index 87e4e81..c5d0317 100755
 +	my $createcmd = "createdb --encoding=UTF-8 --template=template1 $DB > $REGRESS_LOG";
  	return system($createcmd);
  }
+
++@@ -1954,7 +1965,7 @@ sub diff_files
++ 	if ( $sysdiff ) {
++
++ 		#$diffstr = `diff --strip-trailing-cr -u $expected_file $obtained_file 2>&1`;
++-		$diffstr = `/usr/local/greenplum-db/lib/postgresql/pgxs/src/test/regress/gpdiff.pl -b -w -gpd_init $REGDIR/global_init_file --strip-trailing-cr $expected_file $obtained_file 2>&1`;
+++		$diffstr = `$gpdiff_path -b -w -gpd_init $REGDIR/global_init_file --strip-trailing-cr $expected_file $obtained_file 2>&1`;
++
++ 		return $diffstr;
++ 	}
  

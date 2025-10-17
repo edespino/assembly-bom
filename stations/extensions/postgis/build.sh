@@ -16,6 +16,15 @@ if [ -z "$NAME" ]; then
   exit 1
 fi
 
+# Determine script directory BEFORE changing directories
+# (works for both direct execution and sourcing)
+if [ -n "${BASH_SOURCE[0]:-}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
+PATCH_FILE="${SCRIPT_DIR}/postgis-cloudberry-test-filters.patch"
+
 # Navigate to PostGIS build directory
 POSTGIS_BUILD_DIR="$PARTS_DIR/$NAME/postgis/build/postgis-3.3.2"
 cd "$POSTGIS_BUILD_DIR" || {
@@ -40,14 +49,6 @@ else
 fi
 
 # Apply patch for Cloudberry-specific test filtering and plpython3u fix
-# Determine script directory (works for both direct execution and sourcing)
-if [ -n "${BASH_SOURCE[0]:-}" ]; then
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-else
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-fi
-PATCH_FILE="${SCRIPT_DIR}/postgis-cloudberry-test-filters.patch"
-
 if [ -f "$PATCH_FILE" ]; then
   # Check if patch is already applied by looking for Cloudberry-specific filtering
   if grep -q "# Cloudberry-specific filtering" regress/run_test.pl 2>/dev/null; then
