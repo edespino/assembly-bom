@@ -42,6 +42,7 @@ products:
             - gpstart
             - gpstop
             - gprestart
+            - gprecoverseg-test
           test_configs:
             - name: "default"
               pgoptions: "-c optimizer=on"
