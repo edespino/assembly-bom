@@ -36,6 +36,7 @@ products:
             - configure
             - build
             - install
+            - setup-multinode
             - create-demo-cluster
             - unittest
             - installcheck
