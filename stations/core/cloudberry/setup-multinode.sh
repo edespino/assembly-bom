@@ -30,7 +30,7 @@ NAME="${NAME:?Component NAME is required}"
 # --------------------------------------------------------------------
 
 # Segment hosts - easily configurable
-SEGMENT_HOSTS=("sdw1" "sdw2")
+SEGMENT_HOSTS=("sdw1" "sdw2" "sdw3" "sdw4")
 
 # Coordinator host (current system)
 COORDINATOR_HOST="$(hostname -s)"
