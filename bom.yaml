@@ -5,7 +5,7 @@ products:
       core:
         - name: cloudberry
           url: https://github.com/apache/cloudberry.git
-          branch: REL_2_STABLE
+          branch: main
           configure_flags: |
             --disable-external-fts
             --enable-gpcloud
