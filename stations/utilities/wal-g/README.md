@@ -1,4 +1,4 @@
-# WAL-G for Cloudberry Database
+# WAL-G for Apache Cloudberry
 
 ## Overview
 
@@ -212,7 +212,7 @@ The Greenplum-specific build (`main/gp/`) includes:
 - Multi-segment coordination
 - Parallel backup/restore
 - Segment-specific operations
-- Cloudberry Database compatibility
+- Apache Cloudberry compatibility
 
 ### Backup Process
 
@@ -336,4 +336,4 @@ WAL-G is licensed under the Apache License 2.0. See the [WAL-G repository](https
 
 - [Official WAL-G Documentation](https://github.com/wal-g/wal-g)
 - [Greenplum Documentation](https://github.com/wal-g/wal-g/blob/master/docs/Greenplum.md)
-- [Cloudberry Database](https://github.com/apache/cloudberry)
+- [Apache Cloudberry](https://github.com/apache/cloudberry)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers testing WAL-G with Cloudberry Database, including the automated test suite and manual testing procedures.
+This guide covers testing WAL-G with Apache Cloudberry, including the automated test suite and manual testing procedures.
 
 ## Automated Test Suite
 

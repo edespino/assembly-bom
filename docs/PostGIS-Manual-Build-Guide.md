@@ -1,12 +1,12 @@
-# PostGIS Manual Build Guide for Cloudberry Database
+# PostGIS Manual Build Guide for Apache Cloudberry
 
-This guide provides a streamlined, step-by-step process for manually building PostGIS and its geospatial dependencies for Cloudberry Database.
+This guide provides a streamlined, step-by-step process for manually building PostGIS and its geospatial dependencies for Apache Cloudberry.
 
 ## Prerequisites
 
 **System Requirements:**
 - Rocky Linux, RHEL, or CentOS 8/9
-- Cloudberry Database already installed
+- Apache Cloudberry already installed
 - 4+ GB RAM (8+ GB recommended)
 - 5+ GB free disk space
 

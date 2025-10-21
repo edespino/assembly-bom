@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/../../generic/common.sh"
 component_name="cloudberry"
 step_name="gprestart"
 
-log_info "Restarting Cloudberry Database..."
+log_info "Restarting Apache Cloudberry..."
 
 # Source the gpdemo environment if available
 GPDEMO_ENV="${PARTS_DIR}/${component_name}/gpAux/gpdemo/gpdemo-env.sh"
@@ -23,4 +23,4 @@ fi
 log_info "Executing: gpstop -ar"
 gpstop -ar
 
-log_success "Cloudberry Database restarted successfully"
+log_success "Apache Cloudberry restarted successfully"
