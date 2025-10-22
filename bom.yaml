@@ -80,6 +80,7 @@ products:
             - install
             - initdb
             - start
+            - installcheck
             - stop
 
         - name: postgres14
@@ -97,6 +98,7 @@ products:
             - install
             - initdb
             - start
+            - installcheck
             - stop
 
       extensions:
