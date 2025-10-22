@@ -65,6 +65,40 @@ products:
               directory: "contrib/pax_storage"
               description: "PAX storage - test Installcheck with optimizer enabled"
 
+        - name: postgres15
+          url: https://github.com/postgres/postgres.git
+          branch: REL_15_STABLE
+          configure_flags: |
+            --with-python
+            --enable-cassert
+            --enable-debug
+            --with-libxml
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - initdb
+            - start
+            - stop
+
+        - name: postgres14
+          url: https://github.com/postgres/postgres.git
+          branch: REL_14_STABLE
+          configure_flags: |
+            --with-python
+            --enable-cassert
+            --enable-debug
+            --with-libxml
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - initdb
+            - start
+            - stop
+
       extensions:
         - name: pxf
           url: https://github.com/apache/cloudberry-pxf.git
