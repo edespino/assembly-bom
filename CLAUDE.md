@@ -4,27 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Assembly BOM is a Software Bill of Materials (SBOM) development tool for the Cloudberry Database ecosystem. See README.md for user documentation and architecture overview.
+Assembly BOM is a Software Bill of Materials (SBOM) development tool supporting multiple products through separate BOM configurations:
+
+- **Cloudberry Database Ecosystem** (`cloudberry-bom.yaml`, default) - Complete database build with geospatial dependencies
+- **Apache Release Validation** (`apache-bom.yaml`) - Cryptographic verification of Apache Software Foundation releases
+
+See README.md for user documentation and architecture overview.
 
 ## AI Development Workflow
 
 ### Essential Commands for Development
 ```bash
+# List available BOM files
+./assemble.sh -B
+
+# Cloudberry development (default BOM)
+./assemble.sh --dry-run --component <component>
+./assemble.sh --run --component <component> --steps <step> --force
+
+# Apache release validation
+./assemble.sh -b apache-bom.yaml --run --component <component>
+./assemble.sh -b apache-bom.yaml -l
+
 # Lint and typecheck (run after code changes)
 # NOTE: Check README or ask user for specific linting commands if not found
-
-# Build validation
-./assemble.sh --dry-run --component <component>
-
-# Component debugging
-./assemble.sh --run --component <component> --steps <step> --force
 ```
 
 ### Code Analysis and Modification Guidelines
 - **Station Scripts**: Follow naming pattern `stations/{layer}/{component}/{step}.sh`
 - **Generic Fallbacks**: Located in `stations/generic/` for common build patterns
+- **Apache Scripts**: All Apache-specific scripts prefixed with `apache-` in `stations/generic/`
 - **Environment Setup**: Check `config/env.sh` for shared variables and paths
-- **Component Definition**: All components defined in `bom.yaml` with steps, flags, and dependencies
+- **Component Definition**: Components defined in BOM files (`cloudberry-bom.yaml`, `apache-bom.yaml`) with steps, flags, and dependencies
+- **BOM Selection**: Use `--bom-file` or `-b` flag to specify alternate BOM files
 
 ## Critical System Dependencies
 
@@ -126,18 +138,64 @@ PostGIS has memory corruption issues in distributed query scenarios. The crash t
 
 **Core Dump Analysis**: Automated pattern recognition in crash-test.sh identifies crash signatures and generates detailed GDB analysis reports.
 
+## Apache Release Validation Framework
+
+### Overview
+The Apache validation framework provides automated cryptographic verification and compliance validation for Apache Software Foundation releases.
+
+### Apache-Specific Generic Scripts
+All Apache scripts are prefixed with `apache-` and located in `stations/generic/`:
+
+- **`apache-discover-and-verify-release.sh`** - Discovery-based validation
+  - Auto-discovers all artifacts (src/bin) from `RELEASE_URL`
+  - Downloads KEYS file from `KEYS_URL` and imports GPG keys
+  - Verifies GPG signatures (.asc files) for all artifacts
+  - Verifies SHA512 checksums (.sha512 files) for all artifacts
+  - Categorizes artifacts: `-src` or `-source` = source, others = binary
+  - Saves artifact lists to `.discovered-src-artifacts` and `.discovered-bin-artifacts`
+
+- **`apache-extract-discovered.sh`** - Artifact extraction
+  - Reads discovered artifact lists
+  - Auto-detects archive format (tar.gz, tar.bz2, tar.xz, zip)
+  - Extracts all source and binary artifacts
+
+- **`apache-validate-compliance.sh`** - Apache compliance validation
+  - Validates LICENSE file (Apache License 2.0)
+  - Validates NOTICE file (ASF attribution, copyright with current year)
+  - Validates DISCLAIMER file (for incubator projects, auto-detected by name)
+  - Auto-detects incubator projects by checking for "incubating" in component or directory name
+
+### Apache BOM Configuration
+Environment variables required for Apache components:
+- `RELEASE_VERSION` - Version number (e.g., "1.11.0")
+- `RELEASE_CANDIDATE` - RC number (e.g., "rc6")
+- `RELEASE_URL` - Full URL to release artifacts directory
+- `KEYS_URL` - Full URL to KEYS file
+
+### Discovery-Based Architecture
+The framework requires **no hardcoding** of artifact names. It dynamically:
+1. Fetches directory listing from `RELEASE_URL`
+2. Identifies all archive artifacts (.tar.gz, .tar.bz2, .tar.xz, .zip)
+3. Categorizes as source (contains `-src` or `-source`) or binary
+4. Validates all discovered artifacts automatically
+
+This approach handles varying numbers of artifacts per project without configuration changes.
+
 ## File Organization
 
 ### Critical Files for AI Development
-- `bom.yaml` - Component definitions and build configuration
+- `cloudberry-bom.yaml` - Cloudberry Database component definitions and build configuration (default)
+- `apache-bom.yaml` - Apache release validation component definitions
 - `stations/generic/common.sh` - Shared logging and utility functions
+- `stations/generic/apache-*.sh` - Apache-specific validation scripts
 - `config/env.sh` - Environment setup with library paths
 - `stations/extensions/postgis/test.sh` - Comprehensive PostGIS testing
 
 ### Station Script Discovery Pattern
 1. Look for `stations/{layer}/{component}/{step}.sh`
 2. Fallback to `stations/generic/{step}.sh`
-3. Import `stations/generic/common.sh` for logging functions
+3. For Apache components, use `stations/generic/apache-{step}.sh`
+4. Import `stations/generic/common.sh` for logging functions
 
 ## Testing and Validation
 
@@ -146,11 +204,13 @@ PostGIS has memory corruption issues in distributed query scenarios. The crash t
 - **Integration Tests**: Cross-component compatibility
 - **Regression Tests**: Extension-specific test suites
 - **Stability Tests**: Crash reproduction and core dump analysis
+- **Cryptographic Validation**: Apache release signature and checksum verification
 
 ### Test Configuration Management
 - **Cloudberry**: Multiple test configs (default, optimizer-off, PAX storage)
 - **PostGIS**: Comprehensive regression suite with tiger geocoder, SFCGAL, raster
 - **Dependencies**: Basic functionality validation
+- **Apache Releases**: GPG signature verification, SHA512 checksums, compliance validation
 
 ## Development Best Practices
 
@@ -161,11 +221,27 @@ PostGIS has memory corruption issues in distributed query scenarios. The crash t
 4. Update both script and documentation if changing interfaces
 
 ### When Adding New Components
-1. Add to appropriate layer in `bom.yaml` (dependencies → core → extensions)
+
+**For Cloudberry Ecosystem Components:**
+1. Add to appropriate layer in `cloudberry-bom.yaml` (dependencies → core → extensions)
 2. Create component directory: `stations/{layer}/{component}/`
 3. Override generic steps as needed
 4. Test build pipeline thoroughly
 5. Document any special requirements or known issues
+
+**For Apache Release Validation:**
+1. Add to `apache-bom.yaml` under `components.core`
+2. Set required environment variables: `RELEASE_VERSION`, `RELEASE_CANDIDATE`, `RELEASE_URL`, `KEYS_URL`
+3. Use standard Apache steps: `apache-discover-and-verify-release`, `apache-extract-discovered`, `apache-validate-compliance`
+4. No component-specific scripts needed - discovery-based validation handles all artifacts automatically
+5. Test with: `./assemble.sh -b apache-bom.yaml --run --component <component>`
+
+**For New Product Categories:**
+1. Create new BOM file: `{product}-bom.yaml`
+2. Follow pattern: `{project}-bom.yaml` naming convention
+3. Define product name and component structure
+4. Create product-specific generic scripts with appropriate prefix (e.g., `maven-*.sh`, `npm-*.sh`)
+5. Test with: `./assemble.sh -b {product}-bom.yaml -l`
 
 ### Environment Considerations
 - PostGIS stack requires significant disk space and build time (GDAL ~8-12 minutes)

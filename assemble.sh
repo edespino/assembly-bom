@@ -32,26 +32,17 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # shellcheck disable=SC1091
 [ -f config/bootstrap.sh ] && source config/bootstrap.sh
 
-# Validate bom.yaml
-if [[ ! -f bom.yaml ]]; then
-  echo "[assemble] Error: bom.yaml not found!"
-  exit 1
-fi
-if ! yq e '.' bom.yaml >/dev/null 2>&1; then
-  echo "[assemble] Error: bom.yaml is not valid YAML."
-  exit 1
-fi
-
 if [[ "$#" -eq 0 ]]; then
   set -- --help
 fi
 
-OPTIONS=c:s:t:hlrdfgxGSECDT
-LONGOPTS=component:,steps:,test-config:,help,list,run,dry-run,force,debug,debug-extensions
+OPTIONS=b:c:s:t:hlrdfgxGSECDTB
+LONGOPTS=bom-file:,component:,steps:,test-config:,help,list,run,dry-run,force,debug,debug-extensions,list-boms
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
+BOM_FILE="cloudberry-bom.yaml"
 ONLY_COMPONENTS=()
 STEP_OVERRIDE=""
 TEST_CONFIG_OVERRIDE=""
@@ -62,6 +53,7 @@ DEBUG_BUILD=false
 DEBUG_EXTENSIONS_FLAG=false
 
 SHOW_LIST=false
+SHOW_BOMS=false
 SHOW_GIT=false
 SHOW_STEPS=false
 SHOW_ENV=false
@@ -70,10 +62,12 @@ SHOW_TEST_CONFIGS=false
 
 while true; do
   case "$1" in
+    -b|--bom-file) BOM_FILE="$2"; shift 2 ;;
     -c|--component) IFS=',' read -ra ONLY_COMPONENTS <<< "$2"; shift 2 ;;
     -s|--steps) STEP_OVERRIDE="$2"; shift 2 ;;
     -t|--test-config) TEST_CONFIG_OVERRIDE="$2"; shift 2 ;;
     -l) SHOW_LIST=true; shift ;;
+    -B|--list-boms) SHOW_BOMS=true; shift ;;
     -G) SHOW_GIT=true; shift ;;
     -S) SHOW_STEPS=true; shift ;;
     -E) SHOW_ENV=true; shift ;;
@@ -94,10 +88,12 @@ while true; do
     -g|--debug) DEBUG_BUILD=true; shift ;;
     -x|--debug-extensions) DEBUG_EXTENSIONS_FLAG=true; shift ;;
     -h|--help)
-      echo "Usage: $0 [--run] [--list] [--dry-run] [-c <names>] [-s <steps>] [-f]"
+      echo "Usage: $0 [--run] [--list] [--dry-run] [-b <file>] [-c <names>] [-s <steps>] [-f]"
       echo ""
       echo "  -r, --run               Run BOM steps (must be explicitly provided)"
+      echo "  -b, --bom-file          Specify alternate BOM file (default: cloudberry-bom.yaml)"
       echo "  -l                      List component names by layer"
+      echo "  -B, --list-boms         List available BOM files"
       echo "  -G                      Show Git info (url, branch)"
       echo "  -S                      Show steps"
       echo "  -E                      Show environment variables"
@@ -119,7 +115,59 @@ while true; do
   esac
 done
 
-PRODUCT=$(yq e '.products | keys | .[0]' bom.yaml)
+# List available BOM files if requested
+if [[ "$SHOW_BOMS" == "true" ]]; then
+  echo "[assemble] Available BOM files:"
+  echo ""
+
+  # Find all *-bom.yaml files
+  shopt -s nullglob
+  BOM_FILES=(*-bom.yaml)
+  shopt -u nullglob
+
+  if [[ ${#BOM_FILES[@]} -eq 0 ]]; then
+    echo "  No BOM files found (*-bom.yaml)"
+    exit 0
+  fi
+
+  DEFAULT_BOM="cloudberry-bom.yaml"
+
+  for bom_file in "${BOM_FILES[@]}"; do
+    # Check if it's the default
+    if [[ "$bom_file" == "$DEFAULT_BOM" ]]; then
+      echo "  $bom_file (default)"
+    else
+      echo "  $bom_file"
+    fi
+
+    # Try to extract product name
+    if [[ -f "$bom_file" ]] && command -v yq &> /dev/null; then
+      product=$(yq e '.products | keys | .[0]' "$bom_file" 2>/dev/null || echo "")
+      if [[ -n "$product" && "$product" != "null" ]]; then
+        echo "    Product: $product"
+      fi
+    fi
+  done
+
+  echo ""
+  echo "Usage: ./assemble.sh -b <bom-file> [options]"
+  exit 0
+fi
+
+# Validate BOM file (after parsing command line arguments)
+if [[ ! -f "${BOM_FILE}" ]]; then
+  echo "[assemble] Error: ${BOM_FILE} not found!"
+  exit 1
+fi
+if ! yq e '.' "${BOM_FILE}" >/dev/null 2>&1; then
+  echo "[assemble] Error: ${BOM_FILE} is not valid YAML."
+  exit 1
+fi
+
+# Export BOM_FILE so lib/common.sh can use it
+export BOM_FILE
+
+PRODUCT=$(yq e '.products | keys | .[0]' "${BOM_FILE}")
 
 # --------------------------------------------------------------------
 # Force Reset Helper
@@ -160,13 +208,13 @@ if [[ "$SHOW_LIST" == true ]]; then
   echo "[assemble] Component listing for product: $PRODUCT"
 
   for LAYER in dependencies core extensions utilities components; do
-    COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
+    COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" "${BOM_FILE}" 2>/dev/null || echo 0)
     [[ "$COUNT" -eq 0 ]] && continue
 
     MATCHED=()
 
     for ((i = 0; i < COUNT; i++)); do
-      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" "${BOM_FILE}")
 
       if (( ${#ONLY_COMPONENTS[@]} > 0 )); then
         MATCH=false
@@ -187,7 +235,7 @@ if [[ "$SHOW_LIST" == true ]]; then
     echo ""
     echo "$LAYER:"
     for i in "${MATCHED[@]}"; do
-      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" "${BOM_FILE}")
       echo "  - $NAME"
       [[ "$SHOW_GIT" == true ]] && print_git_info "$LAYER" "$i"
       [[ "$SHOW_STEPS" == true ]] && print_steps "$LAYER" "$i"
@@ -206,12 +254,12 @@ fi
 if [[ "$DO_DRY_RUN" == true ]]; then
   echo "[assemble] Dry run: Build order based on layer ordering (dependencies → core → extensions → utilities → components)"
   for LAYER in dependencies core extensions utilities components; do
-    COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
+    COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" "${BOM_FILE}" 2>/dev/null || echo 0)
     if [[ "$COUNT" -eq 0 ]]; then continue; fi
     echo ""
     echo "$LAYER:"
     for ((i = 0; i < COUNT; i++)); do
-      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+      NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" "${BOM_FILE}")
       echo "  - $NAME"
     done
   done
@@ -234,13 +282,13 @@ SUMMARY_LINES=()
 sudo chmod a+w /usr/local
 
 for LAYER in dependencies core extensions utilities components; do
-  COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" bom.yaml 2>/dev/null || echo 0)
+  COUNT=$(yq e ".products.${PRODUCT}.components.${LAYER} | length" "${BOM_FILE}" 2>/dev/null || echo 0)
   if [[ "$COUNT" -eq 0 ]]; then continue; fi
 
   echo "[assemble] Processing $LAYER components..."
 
   for ((i = 0; i < COUNT; i++)); do
-    NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" bom.yaml)
+    NAME=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].name" "${BOM_FILE}")
 
     if (( ${#ONLY_COMPONENTS[@]} > 0 )); then
       SKIP=true
@@ -253,15 +301,15 @@ for LAYER in dependencies core extensions utilities components; do
       $SKIP && continue
     fi
 
-    URL=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].url" bom.yaml)
-    BRANCH=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].branch" bom.yaml)
-    CONFIGURE_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].configure_flags" bom.yaml)
-    BUILD_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].build_flags" bom.yaml)
+    URL=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].url" "${BOM_FILE}")
+    BRANCH=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].branch" "${BOM_FILE}")
+    CONFIGURE_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].configure_flags" "${BOM_FILE}")
+    BUILD_FLAGS=$(yq e -o=props ".products.${PRODUCT}.components.${LAYER}[$i].build_flags" "${BOM_FILE}")
 
     if [[ -n "$STEP_OVERRIDE" ]]; then
       IFS=',' read -ra STEPS <<< "$STEP_OVERRIDE"
     else
-      mapfile -t STEPS < <(yq e ".products.${PRODUCT}.components.${LAYER}[$i].steps[]" bom.yaml)
+      mapfile -t STEPS < <(yq e ".products.${PRODUCT}.components.${LAYER}[$i].steps[]" "${BOM_FILE}")
     fi
 
     if [[ "$FORCE_RESET" == true && " ${STEPS[*]} " == *" clone "* ]]; then
@@ -272,9 +320,9 @@ for LAYER in dependencies core extensions utilities components; do
     export NAME URL BRANCH CONFIGURE_FLAGS BUILD_FLAGS
     export INSTALL_PREFIX="/usr/local/$NAME"
 
-    ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" bom.yaml 2>/dev/null || true)
+    ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" "${BOM_FILE}" 2>/dev/null || true)
     for KEY in $ENV_KEYS; do
-      VALUE=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env.$KEY" bom.yaml)
+      VALUE=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env.$KEY" "${BOM_FILE}")
       export "$KEY"="$VALUE"
       echo "[assemble]     ENV: $KEY=$VALUE"
     done
