@@ -37,3 +37,10 @@ products:
             - apache-discover-and-verify-release
             - apache-extract-discovered
             - apache-validate-compliance
+
+      # Build tool dependencies
+      dependencies:
+        - name: sbt
+          steps:
+            - setup-repo
+            - install
