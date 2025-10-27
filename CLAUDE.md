@@ -165,6 +165,73 @@ All Apache scripts are prefixed with `apache-` and located in `stations/generic/
   - Validates DISCLAIMER file (for incubator projects, auto-detected by name)
   - Auto-detects incubator projects by checking for "incubating" in component or directory name
 
+### Apache License Compliance Review Toolkit
+
+**Purpose**: Deep license compliance review for Apache source releases, going beyond basic file validation to detect licensing issues that would block releases.
+
+**Files**:
+- **`stations/generic/apache-review-license-compliance.sh`** - Automated license scanner
+  - Searches for derived/copied code with attribution comments ("derived from", "based on", "adapted from")
+  - Finds non-ASF copyright statements requiring LICENSE file attribution
+  - Detects files with multiple/duplicate license headers
+  - Identifies assembly/uber JARs and analyzes bundled dependencies
+  - Extracts package lists from JARs to identify third-party libraries
+  - Checks for common missing licenses (argonaut, shapeless, jansi, hawtjni, etc.)
+  - Creates timestamped output directory with detailed findings
+
+- **`docs/Apache-Release-Review-Guide.md`** - Comprehensive review methodology
+  - 4-phase review process (Verification → Automated Scanning → Manual Review → Documentation)
+  - Time estimates for each phase (15-120 minutes total)
+  - Common issues to watch for (critical/major/minor severity)
+  - Assembly JAR deep-dive procedures
+  - Vote casting guidelines (+1/-1 with proper justification)
+  - Command examples and tips for efficient reviews
+
+- **`docs/Apache-Release-Review-Template.md`** - Structured review document
+  - Comprehensive checklist for all compliance areas
+  - Artifact verification section (signatures, checksums)
+  - License compliance tracking (source files, third-party code, assembly JARs)
+  - Build verification results
+  - Issue documentation by severity
+  - Vote recommendation with justification
+
+**Usage**:
+```bash
+# Run automated scanner on extracted source
+cd $HOME/bom-parts/toree/toree-0.6.0-incubating-src
+$HOME/assembly-bom/stations/generic/apache-review-license-compliance.sh
+
+# Review output
+ls -la license-review-*/
+cat license-review-*/non-asf-copyrights.txt
+cat license-review-*/assembly-jars.txt
+
+# Document findings
+cp $HOME/assembly-bom/docs/Apache-Release-Review-Template.md my-review.md
+# Fill in template with findings
+```
+
+**Critical Issues Detected**:
+- **Missing LICENSE attributions** - Embedded third-party code (e.g., Guava ClassPath.java) not mentioned in LICENSE
+- **Assembly JAR licensing** - Bundled libraries missing proper licenses in META-INF
+- **Duplicate headers** - Files with both ASF and original license (should keep only original if also Apache 2.0)
+- **Category-X licenses** - Accidental bundling of incompatible licenses (JSON, BSD-4-Clause, GPL)
+
+**Example from Toree 0.6.0-rc1**:
+- Found: ClassPath.java derived from Guava v32.1.2 (lines 73-78 state derivation)
+- Issue: Not mentioned in root LICENSE file
+- Also had: Duplicate license headers (both ASF and Guava)
+- Result: -1 binding vote, release blocked
+
+**When to Use**:
+- Reviewing Apache Incubator source releases before voting
+- Preparing release candidates for vote
+- Investigating license compliance issues
+- Auditing assembly/uber JARs for bundled dependencies
+
+**Integration with BOM**:
+Can be added as a manual review step or integrated into apache-bom.yaml for systematic reviews.
+
 ### Apache BOM Configuration
 Environment variables required for Apache components:
 - `RELEASE_VERSION` - Version number (e.g., "1.11.0")
