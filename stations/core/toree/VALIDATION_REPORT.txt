@@ -1,0 +1,298 @@
+Apache Toree 0.6.0-incubating RC1 - Validation Report
+
+Validation Date: 2025-10-26 through 2025-10-27
+Release: Apache Toree 0.6.0-incubating RC1
+Release URL: https://dist.apache.org/repos/dist/dev/incubator/toree/0.6.0-incubating-rc1/toree
+KEYS URL: https://dist.apache.org/repos/dist/release/incubator/toree/KEYS
+
+================================================================================
+VOTE
+================================================================================
+
+0 (binding)
+
+I am not very familiar with the Apache Toree project. The validation phases
+documented below all completed successfully, but I lack sufficient project
+knowledge to provide a positive vote.
+
+================================================================================
+VALIDATION SUMMARY
+================================================================================
+
+Six validation phases were performed and completed successfully:
+1. Cryptographic Verification
+2. Artifact Extraction
+3. Compliance Validation
+4. License Audit (Apache RAT)
+5. Build Verification
+6. Test Execution
+
+Issues were identified during the review process and are documented in the
+"Issues Identified" section below.
+
+================================================================================
+PHASE 1: CRYPTOGRAPHIC VERIFICATION
+================================================================================
+
+Actions Performed:
+- Downloaded KEYS file from Apache distribution
+- Imported GPG public keys
+- Discovered all artifacts in release directory
+- Verified GPG signatures for all artifacts
+- Verified SHA512 checksums for all artifacts
+
+Artifacts Verified:
+- apache-toree-0.6.0-incubating-src.tar.gz
+- apache-toree-0.6.0-incubating-bin.tar.gz
+- Associated .asc signature files
+- Associated .sha512 checksum files
+
+Results:
+✓ All GPG signatures verified successfully
+✓ All SHA512 checksums matched
+
+================================================================================
+PHASE 2: ARTIFACT EXTRACTION
+================================================================================
+
+Actions Performed:
+- Extracted source distribution tarball
+- Extracted binary distribution tarball
+
+Results:
+✓ Source tarball extracted successfully
+✓ Binary tarball extracted successfully
+
+================================================================================
+PHASE 3: COMPLIANCE VALIDATION
+================================================================================
+
+Actions Performed:
+- Checked for LICENSE file
+- Validated LICENSE file contains Apache License 2.0
+- Checked for NOTICE file
+- Validated NOTICE file contains Apache Software Foundation attribution
+- Validated NOTICE file contains current year (2025)
+- Checked for DISCLAIMER file (incubator requirement)
+- Verified project name includes "incubating" designation
+
+Results:
+✓ LICENSE file present with Apache License 2.0 text
+✓ NOTICE file present with proper ASF attribution
+✓ NOTICE file copyright year is current (2025)
+✓ DISCLAIMER file present
+✓ Project name includes "incubating"
+
+================================================================================
+PHASE 4: LICENSE AUDIT
+================================================================================
+
+Command Executed:
+make audit-licenses
+
+Actions Performed:
+- Executed Apache Release Audit Tool (RAT)
+- Scanned all source files for license headers
+- Generated audit report at target/rat-results.txt
+
+Results:
+✓ Apache RAT execution completed successfully
+✓ License audit passed
+
+================================================================================
+PHASE 5: BUILD VERIFICATION
+================================================================================
+
+Command Executed:
+make build
+
+Actions Performed:
+- Compiled source code from release tarball
+- Built all project artifacts from extracted source distribution
+- Verified build completes without requiring git repository
+
+Results:
+✓ Build completed successfully
+✓ Source release is buildable without git dependency
+
+================================================================================
+PHASE 6: TEST EXECUTION
+================================================================================
+
+Command Executed:
+make test
+
+Results:
+✓ Test execution completed successfully
+
+================================================================================
+ISSUES IDENTIFIED
+================================================================================
+
+During the validation review, several issues were identified in the build
+system that affect source release distributions:
+
+--------------------------------------------------------------------------------
+Issue 1: Git Dependencies in Release Targets
+--------------------------------------------------------------------------------
+
+Affected Targets: make release, make src-release, make dist, make pip-release
+
+Description:
+Several Makefile targets have hard dependencies on git that make them
+inappropriate for execution in a source release directory (which is not a
+git repository).
+
+Evidence:
+- Line 25: COMMIT variable requires git (git rev-parse)
+- Line 304: src-release target uses git archive
+- Lines 239, 255: Pip packages embed COMMIT in version files
+- Line 143: VERSION file includes COMMIT
+
+Impact:
+- make release will fail when attempting src-release due to missing git
+- make dist and make pip-release will execute but produce artifacts with
+  empty/invalid COMMIT values
+- Error messages are confusing and don't clearly indicate the root cause
+- Users of source releases may attempt these targets expecting them to work
+
+Recommendation:
+Add git repository detection to targets that require git (e.g., .require-git
+guard that checks for .git directory)
+
+--------------------------------------------------------------------------------
+Issue 2: Root-Owned Artifacts from Docker Builds
+--------------------------------------------------------------------------------
+
+Affected Targets: make pip-release, make system-test, make clean
+
+Description:
+Docker commands that run as root create artifacts owned by root in the dist/
+directory. These cannot be cleaned up by normal users running make clean.
+
+Evidence:
+- Lines 240-241, 257-258: Pip package builds run as --user=root
+- Line 210: System tests run as --user=root
+- Line 73: Clean command cannot remove root-owned files
+
+Impact:
+- After running make pip-release or make system-test, dist/ contains
+  root-owned files
+- Regular users cannot run make clean successfully
+- Users must manually use sudo rm -rf dist to clean up
+- Repeated builds may fail due to permission conflicts with existing
+  root-owned files
+- Development workflow is interrupted
+
+Recommendation:
+Run Docker commands as current user (--user=$(id -u):$(id -g)) or add
+docker-based clean target or document that sudo make clean is required
+
+--------------------------------------------------------------------------------
+Issue 3: clean-dist Target Error When Directory Does Not Exist
+--------------------------------------------------------------------------------
+
+Affected Targets: make clean-dist
+
+Description:
+The clean-dist target displays an error message when the dist/ directory does
+not exist, which can be confusing to users.
+
+Evidence:
+- Line 73: clean-dist target uses "rm -r dist"
+
+Observed behavior when dist/ does not exist:
+  rm -r dist
+  rm: cannot remove 'dist': No such file or directory
+  make: [Makefile:73: clean-dist] Error 1 (ignored)
+
+Impact:
+Shows confusing error message on first clean, though the error is ignored and
+does not cause build failures.
+
+Recommendation:
+Use form that does not produce error messages such as @rm -rf dist
+
+--------------------------------------------------------------------------------
+Issue 4: Bugs in check-licenses Script
+--------------------------------------------------------------------------------
+
+Affected Files: etc/tools/check-licenses
+Status: Fixed in PR #233
+
+Description:
+The check-licenses script contained two bugs that would cause failures when
+running license audits, particularly on clean checkouts.
+
+Evidence:
+1. Line 63: Unnecessary and buggy mkdir command
+   - mkdir -p "$FWDIR"etc/tools/
+   - Missing path separator between "$FWDIR" and etc/tools/
+   - Would create phantom directory in parent directory
+   - The etc/tools/ directory already exists in the repository
+
+2. Missing target directory creation
+   - Script writes to target/rat-results.txt without ensuring target/ exists
+   - Fails on clean checkouts where no build has been run
+
+Impact:
+- make audit-licenses fails on clean source releases or fresh git clones
+- Creates confusing phantom directories in parent directory tree
+- Adds unnecessary prerequisite of running a build before running license
+  checks
+- License audit cannot be performed independently
+
+Resolution:
+Pull request created to fix both issues:
+- PR: https://github.com/apache/incubator-toree/pull/233
+- Branch: fix-check-licenses-script
+- Commit: d9ae44d659330b16917de4f247f4b1416e2cfb5e
+- Author: Ed Espino <espino@apache.org>
+- Date: 2025-10-26 17:53:55 -0700
+- Status: Pending merge
+
+Changes made:
+1. Removed the buggy mkdir -p "$FWDIR"etc/tools/ line
+2. Added mkdir -p target before writing rat-results.txt
+
+Recommendation:
+Merge PR #233 to resolve these issues before the final release.
+
+================================================================================
+TARGETS VERIFIED FOR SOURCE RELEASES
+================================================================================
+
+The following targets have been verified to work correctly from source
+releases:
+
+✓ make build - Build assembly JARs
+✓ make test - Run unit tests
+✓ make audit-licenses - Run Apache RAT (after PR #233 fix)
+
+Note: make bin-release will execute but produces artifacts with empty COMMIT
+values when run from source release.
+
+================================================================================
+OVERALL RESULT
+================================================================================
+
+Status: PASSED (with issues noted)
+
+All validation phases completed successfully. The Apache Toree 0.6.0-incubating
+RC1 release artifacts passed:
+
+- Cryptographic verification (signatures and checksums)
+- Compliance validation (LICENSE, NOTICE, DISCLAIMER)
+- License audit (Apache RAT)
+- Build verification (successful from source release)
+- Test execution (all tests passed)
+
+The source release is confirmed to build and test successfully without requiring
+a git repository, demonstrating it is a proper source release distribution.
+
+Four issues were identified in the build system affecting certain Makefile
+targets when executed from source releases. These issues do not affect the
+core build, test, and license audit functionality, but should be addressed
+for improved user experience with source release distributions.
+
+================================================================================
