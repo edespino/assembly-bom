@@ -25,6 +25,7 @@ products:
             - apache-discover-and-verify-release
             - apache-extract-discovered
             - apache-validate-compliance
+            - apache-review-license-compliance
 
         # Apache Gluten - Incubator project
         - name: gluten
