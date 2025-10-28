@@ -1,18 +1,21 @@
 products:
   apache-releases:
     components:
-      # Apache ResilientDB - Incubator project
+      # Apache GeaFlow - Incubator project
       core:
-        - name: resilientdb
+        - name: geaflow
           env:
-            RELEASE_VERSION: "1.11.0"
-            RELEASE_CANDIDATE: "rc6"
-            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/resilientdb/1.11.0-rc6/resilientdb"
-            KEYS_URL: "https://dist.apache.org/repos/dist/dev/incubator/resilientdb/KEYS"
+            RELEASE_VERSION: "0.7.0"
+            RELEASE_CANDIDATE: "rc1"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/v0.7.0-rc1"
+            KEYS_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/KEYS"
           steps:
             - apache-discover-and-verify-release
             - apache-extract-discovered
             - apache-validate-compliance
+            - apache-rat
+            - build
+            - test
 
         # Apache Toree - Incubator project
         - name: toree

@@ -160,10 +160,40 @@ All Apache scripts are prefixed with `apache-` and located in `stations/generic/
   - Extracts all source and binary artifacts
 
 - **`apache-validate-compliance.sh`** - Apache compliance validation
-  - Validates LICENSE file (Apache License 2.0)
-  - Validates NOTICE file (ASF attribution, copyright with current year)
-  - Validates DISCLAIMER file (for incubator projects, auto-detected by name)
-  - Auto-detects incubator projects by checking for "incubating" in component or directory name
+  - **Incubator Detection**: Auto-detects incubator projects by checking:
+    - RELEASE_URL contains "/incubator/" (primary detection method)
+    - Component name contains "incubating"
+    - Directory name contains "incubating"
+  - **Incubator Requirements** (enforced when detected):
+    - Artifact names MUST contain "incubating"
+    - Directory names MUST contain "incubating"
+    - DISCLAIMER or DISCLAIMER-WIP file required
+    - LICENSE and NOTICE with correct content
+    - Reference: https://incubator.apache.org/policy/incubation.html
+  - **Standard Requirements** (all projects):
+    - LICENSE file (Apache License 2.0)
+    - NOTICE file (ASF attribution, copyright with current year)
+
+- **`apache-rat.sh`** - Apache Release Audit Tool (RAT) for license header validation
+  - **Purpose**: Automated scanning of source files for Apache license headers
+  - **Requirements**: Maven (mvn) must be installed
+  - **Process**:
+    - Runs `mvn apache-rat:check` in extracted source directory
+    - Parses results from Maven output and `target/rat.txt`
+    - Identifies files missing Apache license headers
+    - Categorizes files: approved, generated, JavaDoc, unknown/unapproved
+    - Creates detailed reports for review
+  - **Output Files**:
+    - `target/rat.txt` - Full RAT report from Maven plugin
+    - `target/rat-summary.txt` - Concise summary with statistics
+    - `target/rat-unknown-licenses.txt` - List of files missing headers (if any)
+  - **Common Findings**:
+    - Documentation files (.md, .rst, .txt) often excluded
+    - Configuration files (.yaml, .json, .xml) may need exclusions
+    - Test data and generated code typically excluded
+    - README, LICENSE, NOTICE files don't need headers
+  - **Integration**: Add as step in apache-bom.yaml after apache-validate-compliance
+  - **Manual Review**: Results require review as some files legitimately don't need headers
 
 ### Apache License Compliance Review Toolkit
 
@@ -232,6 +262,19 @@ cp $HOME/assembly-bom/docs/Apache-Release-Review-Template.md my-review.md
 **Integration with BOM**:
 Can be added as a manual review step or integrated into apache-bom.yaml for systematic reviews.
 
+### Component-Specific Build Scripts
+
+Some Apache projects have custom build requirements that override generic build steps:
+
+**Apache GeaFlow:**
+- **Build Command**: `./build.sh --module=geaflow --output=package`
+- **Location**: `stations/core/geaflow/build.sh`
+- **Process**: Runs Maven reactor build for all 103 modules
+- **Duration**: Approximately 10-20 minutes for full build
+- **Output**: Package directory with built artifacts
+- **Build Log**: Saved to `/tmp/geaflow-build.log`
+- **Summary**: Generated at `build-summary.txt` in source directory
+
 ### Apache BOM Configuration
 Environment variables required for Apache components:
 - `RELEASE_VERSION` - Version number (e.g., "1.11.0")
@@ -299,9 +342,10 @@ This approach handles varying numbers of artifacts per project without configura
 **For Apache Release Validation:**
 1. Add to `apache-bom.yaml` under `components.core`
 2. Set required environment variables: `RELEASE_VERSION`, `RELEASE_CANDIDATE`, `RELEASE_URL`, `KEYS_URL`
-3. Use standard Apache steps: `apache-discover-and-verify-release`, `apache-extract-discovered`, `apache-validate-compliance`
-4. No component-specific scripts needed - discovery-based validation handles all artifacts automatically
-5. Test with: `./assemble.sh -b apache-bom.yaml --run --component <component>`
+3. Use standard Apache steps: `apache-discover-and-verify-release`, `apache-extract-discovered`, `apache-validate-compliance`, `apache-rat`
+4. Optional: Add `build` step if project has custom build requirements (create `stations/core/<component>/build.sh`)
+5. No component-specific scripts needed for validation - discovery-based validation handles all artifacts automatically
+6. Test with: `./assemble.sh -b apache-bom.yaml --run --component <component>`
 
 **For New Product Categories:**
 1. Create new BOM file: `{product}-bom.yaml`

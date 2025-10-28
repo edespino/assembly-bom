@@ -1,0 +1,66 @@
+Apache GeaFlow 0.7.0-incubating RC1 - Vote Report
+==================================================
+
+Vote: -1 (binding)
+
+
+CRITICAL ISSUES
+===============
+
+1. Missing Required Files
+--------------------------
+- NOTICE file: MISSING (required per Apache policy)
+- DISCLAIMER file: MISSING (required for incubator releases)
+
+  Reference: https://incubator.apache.org/policy/incubation.html
+
+
+2. Incubator Naming Violations
+-------------------------------
+Per the Incubator Release Checklist:
+https://cwiki.apache.org/confluence/display/INCUBATOR/Incubator+Release+Checklist
+
+- Artifact naming: apache-geaflow-0.7.0-src.tar.gz
+  MUST be: apache-geaflow-0.7.0-incubating-src.tar.gz
+
+- Directory naming: apache-geaflow-0.7.0-src/
+  MUST be: apache-geaflow-0.7.0-incubating-src/
+
+
+3. License Header Compliance
+-----------------------------
+Apache RAT identified 194 files without Apache license headers, including:
+- Documentation files (.md, .rst)
+- Frontend assets (JavaScript, CSS)
+- Configuration files (.yaml, .proto)
+
+RAT report can be reproduced with: mvn apache-rat:check
+
+
+VERIFIED SUCCESSFULLY
+=====================
+
+[X] GPG signatures valid (all 2 artifacts)
+[X] SHA512 checksums valid (all 2 artifacts)
+[X] LICENSE file present (Apache License 2.0)
+[X] Source builds successfully (10-20 min build time)
+[X] Functional testing passed (GQL loop detection demo)
+
+
+RECOMMENDATION
+==============
+
+The release must be rejected due to 4 critical Apache Incubator policy
+violations. While the source code quality is verified (builds and runs
+correctly), the release artifacts do not meet incubator requirements.
+
+The Release Manager should:
+1. Add NOTICE and DISCLAIMER files
+2. Re-cut artifacts with "incubating" in names
+3. Review RAT findings and add license headers or exclusions where appropriate
+4. Submit RC2 for vote
+
+
+--
+Validation Framework: Assembly BOM v1.0
+Validation Date: 2025-10-28

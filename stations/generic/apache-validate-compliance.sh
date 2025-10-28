@@ -40,7 +40,10 @@ OPTIONAL_FILES=()
 
 # Auto-detect incubator project
 if [[ "$INCUBATOR_PROJECT" == "auto" ]]; then
-  if [[ "$COMPONENT_NAME" == *"incubating"* ]] || [[ "$EXTRACTED_DIR" == *"incubating"* ]]; then
+  RELEASE_URL="${RELEASE_URL:-}"
+  if [[ "$COMPONENT_NAME" == *"incubating"* ]] || \
+     [[ "$EXTRACTED_DIR" == *"incubating"* ]] || \
+     [[ "$RELEASE_URL" == *"/incubator/"* ]]; then
     INCUBATOR_PROJECT="true"
   else
     INCUBATOR_PROJECT="false"
@@ -48,15 +51,54 @@ if [[ "$INCUBATOR_PROJECT" == "auto" ]]; then
 fi
 
 # Add DISCLAIMER to required files for incubator projects
+# Note: Apache Incubator Policy allows DISCLAIMER or DISCLAIMER-WIP
 if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
-  REQUIRED_FILES+=("DISCLAIMER")
-  echo "[validate-apache-compliance] Incubator project detected - DISCLAIMER required"
+  echo "[validate-apache-compliance] ⚠ Incubator project detected - additional requirements apply"
+  echo "[validate-apache-compliance]   - DISCLAIMER or DISCLAIMER-WIP file required"
+  echo "[validate-apache-compliance]   - Artifact names must contain 'incubating'"
+  echo "[validate-apache-compliance]   - Directory names must contain 'incubating'"
+  echo "[validate-apache-compliance]   - LICENSE and NOTICE with correct content"
+  echo "[validate-apache-compliance]   Reference: https://incubator.apache.org/policy/incubation.html"
 else
   OPTIONAL_FILES+=("DISCLAIMER")
 fi
 
 echo "[validate-apache-compliance] ========================================="
-echo "[validate-apache-compliance] Step 1: Checking Required Files"
+echo "[validate-apache-compliance] Step 1: Validating Naming Conventions"
+echo "[validate-apache-compliance] ========================================="
+
+# Check incubator naming requirements
+if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
+  # Get the directory name (basename of EXTRACTED_DIR)
+  DIR_NAME=$(basename "$EXTRACTED_DIR")
+
+  # Check if directory name contains "incubating"
+  if [[ "$DIR_NAME" == *"incubating"* ]]; then
+    echo "[validate-apache-compliance] ✓ Directory name contains 'incubating': $DIR_NAME"
+  else
+    echo "[validate-apache-compliance] ❌ Directory name MUST contain 'incubating': $DIR_NAME"
+    echo "[validate-apache-compliance]   Apache Incubator policy requires 'incubating' in artifact names"
+    VALIDATION_PASSED=false
+  fi
+
+  # Check artifact naming by looking at discovered artifacts list
+  ARTIFACTS_DIR="$PARTS_DIR/${COMPONENT_NAME}-artifacts"
+  if [[ -f "$ARTIFACTS_DIR/.discovered-src-artifacts" ]]; then
+    while IFS= read -r artifact; do
+      if [[ "$artifact" == *"incubating"* ]]; then
+        echo "[validate-apache-compliance] ✓ Source artifact contains 'incubating': $artifact"
+      else
+        echo "[validate-apache-compliance] ❌ Source artifact MUST contain 'incubating': $artifact"
+        echo "[validate-apache-compliance]   Apache Incubator policy requires 'incubating' in artifact names"
+        VALIDATION_PASSED=false
+      fi
+    done < "$ARTIFACTS_DIR/.discovered-src-artifacts"
+  fi
+fi
+
+echo ""
+echo "[validate-apache-compliance] ========================================="
+echo "[validate-apache-compliance] Step 2: Checking Required Files"
 echo "[validate-apache-compliance] ========================================="
 
 # Check for required files
@@ -69,6 +111,22 @@ for FILE in "${REQUIRED_FILES[@]}"; do
     VALIDATION_PASSED=false
   fi
 done
+
+# For incubator projects, check for DISCLAIMER or DISCLAIMER-WIP
+if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
+  if [[ -f "DISCLAIMER" ]] || [[ -f "DISCLAIMER-WIP" ]]; then
+    if [[ -f "DISCLAIMER" ]]; then
+      FILE_SIZE=$(stat -f%z "DISCLAIMER" 2>/dev/null || stat -c%s "DISCLAIMER" 2>/dev/null)
+      echo "[validate-apache-compliance] ✓ DISCLAIMER exists (${FILE_SIZE} bytes)"
+    else
+      FILE_SIZE=$(stat -f%z "DISCLAIMER-WIP" 2>/dev/null || stat -c%s "DISCLAIMER-WIP" 2>/dev/null)
+      echo "[validate-apache-compliance] ✓ DISCLAIMER-WIP exists (${FILE_SIZE} bytes)"
+    fi
+  else
+    echo "[validate-apache-compliance] ❌ DISCLAIMER or DISCLAIMER-WIP is MISSING (required for incubator)"
+    VALIDATION_PASSED=false
+  fi
+fi
 
 # Check for optional files
 if [[ ${#OPTIONAL_FILES[@]} -gt 0 ]]; then
@@ -86,7 +144,7 @@ fi
 
 echo ""
 echo "[validate-apache-compliance] ========================================="
-echo "[validate-apache-compliance] Step 2: Validating LICENSE Content"
+echo "[validate-apache-compliance] Step 3: Validating LICENSE Content"
 echo "[validate-apache-compliance] ========================================="
 
 if [[ -f "LICENSE" ]]; then
@@ -108,7 +166,7 @@ fi
 
 echo ""
 echo "[validate-apache-compliance] ========================================="
-echo "[validate-apache-compliance] Step 3: Validating NOTICE Content"
+echo "[validate-apache-compliance] Step 4: Validating NOTICE Content"
 echo "[validate-apache-compliance] ========================================="
 
 if [[ -f "NOTICE" ]]; then
@@ -147,15 +205,23 @@ fi
 
 echo ""
 echo "[validate-apache-compliance] ========================================="
-echo "[validate-apache-compliance] Step 4: Validating DISCLAIMER Content"
+echo "[validate-apache-compliance] Step 5: Validating DISCLAIMER Content"
 echo "[validate-apache-compliance] ========================================="
 
+# Check for DISCLAIMER or DISCLAIMER-WIP
+DISCLAIMER_FILE=""
 if [[ -f "DISCLAIMER" ]]; then
+  DISCLAIMER_FILE="DISCLAIMER"
+elif [[ -f "DISCLAIMER-WIP" ]]; then
+  DISCLAIMER_FILE="DISCLAIMER-WIP"
+fi
+
+if [[ -n "$DISCLAIMER_FILE" ]]; then
   # Check for incubation mention
-  if grep -qi "incubat" DISCLAIMER; then
-    echo "[validate-apache-compliance] ✓ DISCLAIMER contains incubation status"
+  if grep -qi "incubat" "$DISCLAIMER_FILE"; then
+    echo "[validate-apache-compliance] ✓ $DISCLAIMER_FILE contains incubation status"
   else
-    echo "[validate-apache-compliance] ⚠ DISCLAIMER does not mention incubation"
+    echo "[validate-apache-compliance] ⚠ $DISCLAIMER_FILE does not mention incubation"
     if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
       VALIDATION_PASSED=false
     fi
@@ -163,16 +229,17 @@ if [[ -f "DISCLAIMER" ]]; then
 
   # Show first 10 lines
   echo "[validate-apache-compliance]"
-  echo "[validate-apache-compliance] DISCLAIMER preview:"
-  head -10 DISCLAIMER | sed 's/^/[validate-apache-compliance]   /'
+  echo "[validate-apache-compliance] $DISCLAIMER_FILE preview:"
+  head -10 "$DISCLAIMER_FILE" | sed 's/^/[validate-apache-compliance]   /'
 
-  DISCLAIMER_LINES=$(wc -l < DISCLAIMER)
+  DISCLAIMER_LINES=$(wc -l < "$DISCLAIMER_FILE")
   if [[ $DISCLAIMER_LINES -gt 10 ]]; then
     echo "[validate-apache-compliance]   ... ($DISCLAIMER_LINES total lines)"
   fi
 else
   if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
-    echo "[validate-apache-compliance] ⚠ DISCLAIMER file not found (required for incubator projects)"
+    echo "[validate-apache-compliance] ❌ DISCLAIMER or DISCLAIMER-WIP not found (required for incubator)"
+    echo "[validate-apache-compliance]   Reference: https://incubator.apache.org/policy/incubation.html"
   else
     echo "[validate-apache-compliance] ℹ DISCLAIMER file not present (not required)"
   fi
