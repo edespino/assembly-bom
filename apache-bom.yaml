@@ -15,6 +15,7 @@ products:
             - apache-validate-compliance
             - apache-rat
             - build
+            - apache-validate-build-artifacts
             - test
 
         # Apache Toree - Incubator project
@@ -41,6 +42,8 @@ products:
             - apache-discover-and-verify-release
             - apache-extract-discovered
             - apache-validate-compliance
+            - build
+            - apache-validate-build-artifacts
 
       # Build tool dependencies
       dependencies:

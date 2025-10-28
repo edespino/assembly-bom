@@ -196,6 +196,27 @@ All Apache scripts are prefixed with `apache-` and located in `stations/generic/
   - **Integration**: Add as step in apache-bom.yaml after apache-validate-compliance
   - **Manual Review**: Results require review as some files legitimately don't need headers
 
+- **`apache-validate-build-artifacts.sh`** - Build artifact naming validation
+  - **Purpose**: Validates that built JAR files comply with Apache incubator naming requirements
+  - **When to Use**: Run after the build step to verify artifact names
+  - **Incubator Detection**: Auto-detects incubator projects (same logic as apache-validate-compliance.sh)
+  - **Validation Rules** (incubator projects only):
+    - All JAR files MUST contain "incubating" in filename
+    - Example: `geaflow-file-dfs-0.7.0-incubating.jar` ✓ (correct)
+    - Example: `geaflow-file-dfs-0.7.0.jar` ❌ (missing "incubating")
+  - **Process**:
+    - Searches for all .jar files in build output (typically target/ directories)
+    - Validates each JAR filename for "incubating" substring
+    - Provides suggested corrected names for violations
+    - Reports summary with compliant/non-compliant counts
+  - **Common Issues**:
+    - Maven version not set to include "-incubating" suffix (e.g., use "0.7.0-incubating" not "0.7.0")
+    - Parent POM version not inherited by all modules
+    - Artifact naming in assembly configurations
+  - **Integration**: Add as step in apache-bom.yaml after build step
+  - **Skip Behavior**: Automatically skips validation for non-incubator projects
+  - **Reference**: https://incubator.apache.org/policy/incubation.html
+
 ### Apache License Compliance Review Toolkit
 
 **Purpose**: Deep license compliance review for Apache source releases, going beyond basic file validation to detect licensing issues that would block releases.
@@ -345,8 +366,9 @@ This approach handles varying numbers of artifacts per project without configura
 2. Set required environment variables: `RELEASE_VERSION`, `RELEASE_CANDIDATE`, `RELEASE_URL`, `KEYS_URL`
 3. Use standard Apache steps: `apache-discover-and-verify-release`, `apache-extract-discovered`, `apache-validate-compliance`, `apache-rat`
 4. Optional: Add `build` step if project has custom build requirements (create `stations/core/<component>/build.sh`)
-5. No component-specific scripts needed for validation - discovery-based validation handles all artifacts automatically
-6. Test with: `./assemble.sh -b apache-bom.yaml --run --component <component>`
+5. For incubator projects with build: Add `apache-validate-build-artifacts` after `build` step to verify JAR naming compliance
+6. No component-specific scripts needed for validation - discovery-based validation handles all artifacts automatically
+7. Test with: `./assemble.sh -b apache-bom.yaml --run --component <component>`
 
 **For New Product Categories:**
 1. Create new BOM file: `{product}-bom.yaml`
