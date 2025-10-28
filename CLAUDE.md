@@ -169,6 +169,7 @@ All Apache scripts are prefixed with `apache-` and located in `stations/generic/
     - Directory names MUST contain "incubating"
     - DISCLAIMER or DISCLAIMER-WIP file required
     - LICENSE and NOTICE with correct content
+    - KEYS_URL must point to release tree (downloads.apache.org or dist/release), not dev tree (dist/dev)
     - Reference: https://incubator.apache.org/policy/incubation.html
   - **Standard Requirements** (all projects):
     - LICENSE file (Apache License 2.0)

@@ -247,6 +247,59 @@ fi
 
 echo ""
 echo "[validate-apache-compliance] ========================================="
+echo "[validate-apache-compliance] Step 6: Validating KEYS File Location"
+echo "[validate-apache-compliance] ========================================="
+
+# Check KEYS_URL for incubator projects
+if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
+  KEYS_URL="${KEYS_URL:-}"
+
+  if [[ -z "$KEYS_URL" ]]; then
+    echo "[validate-apache-compliance] ⚠ KEYS_URL not set (required for signature verification)"
+  else
+    echo "[validate-apache-compliance] KEYS_URL: $KEYS_URL"
+
+    # Check if KEYS_URL points to dev tree instead of release tree
+    if [[ "$KEYS_URL" == *"/dist/dev/incubator/"* ]]; then
+      echo "[validate-apache-compliance] ❌ KEYS_URL points to dev tree instead of release tree"
+      echo "[validate-apache-compliance]"
+      echo "[validate-apache-compliance]   Current (INCORRECT):"
+      echo "[validate-apache-compliance]     $KEYS_URL"
+      echo "[validate-apache-compliance]"
+      echo "[validate-apache-compliance]   Should be one of:"
+      echo "[validate-apache-compliance]     https://downloads.apache.org/incubator/$COMPONENT_NAME/KEYS (preferred)"
+      echo "[validate-apache-compliance]     https://dist.apache.org/repos/dist/release/incubator/$COMPONENT_NAME/KEYS"
+      echo "[validate-apache-compliance]"
+      echo "[validate-apache-compliance]   Why this matters:"
+      echo "[validate-apache-compliance]   - KEYS files should be maintained in the release tree, not dev tree"
+      echo "[validate-apache-compliance]   - Having KEYS in both locations causes sync issues"
+      echo "[validate-apache-compliance]   - Keys used for signing must never be removed (needed for archived releases)"
+      echo "[validate-apache-compliance]   - Once release is approved, KEYS should be moved from dev to release tree"
+      echo "[validate-apache-compliance]"
+      echo "[validate-apache-compliance]   Reference: Apache release management best practices"
+      VALIDATION_PASSED=false
+    elif [[ "$KEYS_URL" == *"/dist/release/incubator/"* ]] || [[ "$KEYS_URL" == *"downloads.apache.org/incubator/"* ]]; then
+      echo "[validate-apache-compliance] ✓ KEYS_URL correctly points to release tree"
+
+      # Suggest preferred format if using dist.apache.org
+      if [[ "$KEYS_URL" == *"/dist/release/incubator/"* ]]; then
+        echo "[validate-apache-compliance]"
+        echo "[validate-apache-compliance]   Note: Current URL works, but preferred format is:"
+        echo "[validate-apache-compliance]     https://downloads.apache.org/incubator/$COMPONENT_NAME/KEYS"
+      fi
+    else
+      echo "[validate-apache-compliance] ⚠ KEYS_URL format not recognized"
+      echo "[validate-apache-compliance]   Expected format for incubator projects:"
+      echo "[validate-apache-compliance]     https://downloads.apache.org/incubator/<project>/KEYS (preferred)"
+      echo "[validate-apache-compliance]     https://dist.apache.org/repos/dist/release/incubator/<project>/KEYS"
+    fi
+  fi
+else
+  echo "[validate-apache-compliance] ℹ KEYS file location check only applies to incubator projects"
+fi
+
+echo ""
+echo "[validate-apache-compliance] ========================================="
 echo "[validate-apache-compliance] Validation Summary"
 echo "[validate-apache-compliance] ========================================="
 

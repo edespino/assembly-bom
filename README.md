@@ -208,7 +208,7 @@ products:
 **Apache-Specific Steps:**
 - `apache-discover-and-verify-release` - Auto-discovers artifacts, verifies GPG signatures and SHA512 checksums
 - `apache-extract-discovered` - Extracts all discovered source and binary artifacts
-- `apache-validate-compliance` - Validates LICENSE, NOTICE (current year), and DISCLAIMER files
+- `apache-validate-compliance` - Validates LICENSE, NOTICE (current year), DISCLAIMER files, and KEYS file location (incubator projects)
 
 ---
 
