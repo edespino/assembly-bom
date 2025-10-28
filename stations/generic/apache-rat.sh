@@ -244,10 +244,25 @@ echo "[apache-rat] ========================================="
 if [[ "$VALIDATION_PASSED" == "true" ]]; then
   exit 0
 else
-  # Don't fail hard - RAT findings need manual review
-  # Some files may legitimately not have headers
+  # Fail when files are missing license headers
+  # For legitimate exclusions, configure them in pom.xml under <excludes>
   echo "[apache-rat]"
-  echo "[apache-rat] ℹ Manual review required for files without license headers"
-  echo "[apache-rat] Some files may be legitimately excluded (e.g., test data, configs)"
-  exit 0
+  echo "[apache-rat] ❌ FAILED - Files missing license headers must be fixed or excluded"
+  echo "[apache-rat]"
+  echo "[apache-rat] Options to resolve:"
+  echo "[apache-rat]   1. Add Apache license headers to source files"
+  echo "[apache-rat]   2. Configure RAT exclusions in pom.xml for legitimate cases:"
+  echo "[apache-rat]      <plugin>"
+  echo "[apache-rat]        <groupId>org.apache.rat</groupId>"
+  echo "[apache-rat]        <artifactId>apache-rat-plugin</artifactId>"
+  echo "[apache-rat]        <configuration>"
+  echo "[apache-rat]          <excludes>"
+  echo "[apache-rat]            <exclude>**/*.md</exclude>"
+  echo "[apache-rat]            <exclude>**/LICENSE</exclude>"
+  echo "[apache-rat]            <exclude>**/NOTICE</exclude>"
+  echo "[apache-rat]            <!-- Add more patterns as needed -->"
+  echo "[apache-rat]          </excludes>"
+  echo "[apache-rat]        </configuration>"
+  echo "[apache-rat]      </plugin>"
+  exit 1
 fi
