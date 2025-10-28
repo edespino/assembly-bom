@@ -26,6 +26,11 @@ https://cwiki.apache.org/confluence/display/INCUBATOR/Incubator+Release+Checklis
 - Directory naming: apache-geaflow-0.7.0-src/
   MUST be: apache-geaflow-0.7.0-incubating-src/
 
+- Built artifacts: All JARs lack "incubating" in filenames
+  Example: geaflow-assembly-0.7.0.jar
+  Note: JAR naming is "suggested but optional" per policy, but recommended
+  for consistency
+
 
 3. License Header Compliance
 -----------------------------
