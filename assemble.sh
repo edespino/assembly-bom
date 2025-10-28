@@ -278,6 +278,44 @@ fi
 echo "[assemble] Building product: $PRODUCT"
 START_TIME=$(date +%s)
 SUMMARY_LINES=()
+BUILD_FAILED=false
+FAILED_COMPONENTS=()
+
+# Function to print summary (can be called at any time)
+print_build_summary() {
+  echo ""
+  echo "========================================="
+  echo "📋 Component Summary"
+  echo "========================================="
+
+  if [[ ${#SUMMARY_LINES[@]} -eq 0 ]]; then
+    echo "No components processed."
+  else
+    printf '%s\n' "${SUMMARY_LINES[@]}"
+  fi
+
+  echo ""
+  echo "========================================="
+  TOTAL_DURATION=$(( $(date +%s) - START_TIME ))
+
+  if [[ "$BUILD_FAILED" == true ]]; then
+    echo "❌ Assembly FAILED in $(format_duration "$TOTAL_DURATION")"
+    echo ""
+    echo "Failed components:"
+    for FAILED in "${FAILED_COMPONENTS[@]}"; do
+      echo "  • $FAILED"
+    done
+  else
+    echo "✅ Assembly complete in $(format_duration "$TOTAL_DURATION")"
+  fi
+
+  echo "========================================="
+  echo "📝 Full log: $LOG_FILE"
+  echo ""
+}
+
+# Set trap to always print summary on exit
+trap print_build_summary EXIT
 
 sudo chmod a+w /usr/local
 
@@ -356,22 +394,42 @@ for LAYER in dependencies core extensions utilities components; do
       echo "[assemble] --> Step: $STEP"
       STEP_START=$(date +%s)
 
+      # Execute step and capture exit code
+      STEP_EXIT_CODE=0
       if [[ -x "$SCRIPT" ]]; then
-        bash "$SCRIPT" "$NAME" "$URL" "$BRANCH"
+        bash "$SCRIPT" "$NAME" "$URL" "$BRANCH" || STEP_EXIT_CODE=$?
       elif [[ -x "$FALLBACK" ]]; then
         if [[ "$STEP" == "clone" ]]; then
-          bash "$FALLBACK" "$NAME" "$URL" "$BRANCH"
+          bash "$FALLBACK" "$NAME" "$URL" "$BRANCH" || STEP_EXIT_CODE=$?
         else
-          bash "$FALLBACK"
+          bash "$FALLBACK" || STEP_EXIT_CODE=$?
         fi
       else
         echo "[assemble] ❌ No script found for step '$STEP'"
-        exit 1
+        STEP_EXIT_CODE=1
       fi
 
       STEP_DURATION=$(( $(date +%s) - STEP_START ))
-      echo "[assemble] ✅ Step completed in $(format_duration "$STEP_DURATION")"
-      STEP_TIMINGS+=("    • $STEP  →  $(format_duration "$STEP_DURATION")")
+
+      # Check if step succeeded or failed
+      if [[ $STEP_EXIT_CODE -eq 0 ]]; then
+        echo "[assemble] ✅ Step completed in $(format_duration "$STEP_DURATION")"
+        STEP_TIMINGS+=("    • $STEP  →  $(format_duration "$STEP_DURATION") ✅")
+      else
+        echo "[assemble] ❌ Step FAILED in $(format_duration "$STEP_DURATION") (exit code: $STEP_EXIT_CODE)"
+        STEP_TIMINGS+=("    • $STEP  →  $(format_duration "$STEP_DURATION") ❌ FAILED")
+        BUILD_FAILED=true
+        FAILED_COMPONENTS+=("$NAME (step: $STEP, exit code: $STEP_EXIT_CODE)")
+
+        # Add partial component summary before exiting
+        COMPONENT_DURATION=$(( $(date +%s) - COMPONENT_START ))
+        SUMMARY_LINES+=("")
+        SUMMARY_LINES+=("[✗] $NAME  —  $(format_duration "$COMPONENT_DURATION") ❌ FAILED at step: $STEP")
+        SUMMARY_LINES+=("${STEP_TIMINGS[@]}")
+
+        # Exit immediately on failure
+        exit $STEP_EXIT_CODE
+      fi
     done
 
     COMPONENT_DURATION=$(( $(date +%s) - COMPONENT_START ))
@@ -381,92 +439,96 @@ for LAYER in dependencies core extensions utilities components; do
   done
 done
 
-echo ""
-echo "📋 Component Summary:"
-printf '%s\n' "${SUMMARY_LINES[@]}"
-echo ""
-TOTAL_DURATION=$(( $(date +%s) - START_TIME ))
-echo "✅ Assembly complete in $(format_duration "$TOTAL_DURATION")"
-echo "📝 Full log: $LOG_FILE"
+# Summary will be printed by the EXIT trap (print_build_summary function)
 
-echo ""
-echo "🔍 Postgres Extensions"
-echo ""
-
-# Check for extension marker files from different components
-POSTGIS_MARKER="/tmp/claude_postgis_extensions.marker"
-PXF_MARKER="/tmp/claude_pxf_extensions.marker"
-COMBINED_MARKER="/tmp/claude_all_extensions.marker"
-
-# Combine all extension marker files
-rm -f "$COMBINED_MARKER"
-for marker in "$POSTGIS_MARKER" "$PXF_MARKER"; do
-  if [ -f "$marker" ]; then
-    cat "$marker" >> "$COMBINED_MARKER"
-  fi
-done
-
-if [ -f "$COMBINED_MARKER" ]; then
-  awk '
-  /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
-    if (!found) {
-      printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
-      print "-------------------------------+-----------------+-------------------+-----------"
-      found = 1
-    }
-    # Process data rows
-    while ((getline) > 0) {
-      if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
-      if (/^-+\+/) continue
-      if (/[[:alnum:]_]+[[:space:]]*\|/) {
-        split($0, a, "|")
-        name = a[1]; version = a[2]; installed = a[3]; status = a[4]
-        gsub(/^ +| +$/, "", name)
-        gsub(/^ +| +$/, "", version)
-        gsub(/^ +| +$/, "", installed)
-        gsub(/^ +| +$/, "", status)
-        printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
-      }
-    }
-  }
-  END {
-    if (!found) {
-      print "No extensions found."
-    }
-  }' "$COMBINED_MARKER"
-
-  # Clean up marker files
-  rm -f "$POSTGIS_MARKER" "$PXF_MARKER" "$COMBINED_MARKER"
-else
-  # Fallback to old method if marker file doesn't exist
-  awk '
-  /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
-    if (!found) {
-      printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
-      print "-------------------------------+-----------------+-------------------+-----------"
-      found = 1
-    }
-    # Process data rows
-    while ((getline) > 0) {
-      if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
-      if (/^-+\+/) continue
-      if (/[[:alnum:]_]+[[:space:]]*\|/) {
-        split($0, a, "|")
-        name = a[1]; version = a[2]; installed = a[3]; status = a[4]
-        gsub(/^ +| +$/, "", name)
-        gsub(/^ +| +$/, "", version)
-        gsub(/^ +| +$/, "", installed)
-        gsub(/^ +| +$/, "", status)
-        printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
-      }
-    }
-  }
-  END {
-    if (!found) {
-      print "No extensions found."
-    }
-  }' "$LOG_FILE"
+# Only show Postgres extensions if build succeeded
+if [[ "$BUILD_FAILED" == false ]]; then
+  echo ""
+  echo "🔍 Postgres Extensions"
+  echo ""
 fi
 
-exit 0
+if [[ "$BUILD_FAILED" == false ]]; then
+  # Check for extension marker files from different components
+  POSTGIS_MARKER="/tmp/claude_postgis_extensions.marker"
+  PXF_MARKER="/tmp/claude_pxf_extensions.marker"
+  COMBINED_MARKER="/tmp/claude_all_extensions.marker"
+
+  # Combine all extension marker files
+  rm -f "$COMBINED_MARKER"
+  for marker in "$POSTGIS_MARKER" "$PXF_MARKER"; do
+    if [ -f "$marker" ]; then
+      cat "$marker" >> "$COMBINED_MARKER"
+    fi
+  done
+
+  if [ -f "$COMBINED_MARKER" ]; then
+    awk '
+    /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
+      if (!found) {
+        printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
+        print "-------------------------------+-----------------+-------------------+-----------"
+        found = 1
+      }
+      # Process data rows
+      while ((getline) > 0) {
+        if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
+        if (/^-+\+/) continue
+        if (/[[:alnum:]_]+[[:space:]]*\|/) {
+          split($0, a, "|")
+          name = a[1]; version = a[2]; installed = a[3]; status = a[4]
+          gsub(/^ +| +$/, "", name)
+          gsub(/^ +| +$/, "", version)
+          gsub(/^ +| +$/, "", installed)
+          gsub(/^ +| +$/, "", status)
+          printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
+        }
+      }
+    }
+    END {
+      if (!found) {
+        print "No extensions found."
+      }
+    }' "$COMBINED_MARKER"
+
+    # Clean up marker files
+    rm -f "$POSTGIS_MARKER" "$PXF_MARKER" "$COMBINED_MARKER"
+  else
+    # Fallback to old method if marker file doesn't exist
+    awk '
+    /[[:alnum:]_]+[[:space:]]*\|[[:space:]]*default_version/ {
+      if (!found) {
+        printf "%-30s | %-15s | %-17s | %s\n", "Extension", "Default Version", "Installed Version", "Status"
+        print "-------------------------------+-----------------+-------------------+-----------"
+        found = 1
+      }
+      # Process data rows
+      while ((getline) > 0) {
+        if (/^[[:space:]]*$/ || /^\([0-9]+ rows\)/) break
+        if (/^-+\+/) continue
+        if (/[[:alnum:]_]+[[:space:]]*\|/) {
+          split($0, a, "|")
+          name = a[1]; version = a[2]; installed = a[3]; status = a[4]
+          gsub(/^ +| +$/, "", name)
+          gsub(/^ +| +$/, "", version)
+          gsub(/^ +| +$/, "", installed)
+          gsub(/^ +| +$/, "", status)
+          printf "%-30s | %-15s | %-17s | %s\n", name, version, installed, status
+        }
+      }
+    }
+    END {
+      if (!found) {
+        print "No extensions found."
+      }
+    }' "$LOG_FILE"
+  fi
+fi
+
+# Exit with appropriate code
+if [[ "$BUILD_FAILED" == true ]]; then
+  exit 1
+else
+  exit 0
+fi
 
