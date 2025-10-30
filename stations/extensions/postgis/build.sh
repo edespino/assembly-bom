@@ -23,7 +23,6 @@ if [ -n "${BASH_SOURCE[0]:-}" ]; then
 else
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 fi
-PATCH_FILE="${SCRIPT_DIR}/postgis-cloudberry-test-filters.patch"
 
 # Navigate to PostGIS build directory
 POSTGIS_BUILD_DIR="$PARTS_DIR/$NAME/postgis/build/postgis-3.3.2"
@@ -46,22 +45,6 @@ if [ -n "${CFLAGS:-}" ]; then
   make -j"$NPROC" CFLAGS_EXTRA="${CFLAGS}" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
 else
   make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
-fi
-
-# Apply patch for Cloudberry-specific test filtering and plpython3u fix
-if [ -f "$PATCH_FILE" ]; then
-  # Check if patch is already applied by looking for Cloudberry-specific filtering
-  if grep -q "# Cloudberry-specific filtering" regress/run_test.pl 2>/dev/null; then
-    echo "    PostGIS Cloudberry test filters already applied"
-  else
-    echo "    Applying PostGIS Cloudberry test filters and template1 fix..."
-    patch -p1 < "$PATCH_FILE" || {
-      echo "Warning: Failed to apply PostGIS Cloudberry test filter patch"
-      echo "This may cause test failures due to autovacuum warnings and error message format differences"
-    }
-  fi
-else
-  echo "Warning: PostGIS Cloudberry test filter patch not found at $PATCH_FILE"
 fi
 
 echo "✅ build step complete for $NAME"
