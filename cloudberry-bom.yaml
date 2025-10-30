@@ -151,6 +151,12 @@ products:
             - test
             - extended-test
 
+        - name: pax_benchmark
+          url: git@github.com:edespino/pax_benchmark.git
+          branch: main
+          steps:
+            - clone
+
       dependencies:
         - name: libsodium
           url: https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz
