@@ -36,6 +36,7 @@ products:
             - configure
             - build
             - install
+            - gpinitsystem
             - setup-multinode
             - create-demo-cluster
             - unittest
@@ -150,6 +151,12 @@ products:
             - install
             - test
             - extended-test
+
+        - name: pax_benchmark
+          url: git@github.com:edespino/pax_benchmark.git
+          branch: main
+          steps:
+            - clone
 
       dependencies:
         - name: libsodium

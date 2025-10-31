@@ -168,7 +168,12 @@ log "Step: Creating gpinitsystem configuration on coordinator"
 
 # Add COORDINATOR_DATA_DIRECTORY to .bashrc
 log "  → Adding COORDINATOR_DATA_DIRECTORY to ~/.bashrc"
-echo 'export COORDINATOR_DATA_DIRECTORY=/data1/coordinator/cbseg-1' >> ~/.bashrc
+if ! grep -qF 'export COORDINATOR_DATA_DIRECTORY=/data1/coordinator/cbseg-1' ~/.bashrc; then
+  echo 'export COORDINATOR_DATA_DIRECTORY=/data1/coordinator/cbseg-1' >> ~/.bashrc
+  log "  ✅ COORDINATOR_DATA_DIRECTORY added to ~/.bashrc"
+else
+  log "  ℹ️  COORDINATOR_DATA_DIRECTORY already exists in ~/.bashrc (skipped)"
+fi
 
 # Create gpinitsystem.conf
 log "  → Creating /home/cbadmin/gpinitsystem.conf"
