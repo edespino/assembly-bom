@@ -37,9 +37,9 @@ echo "[discover-verify] ----------------------------------------"
 
 # Fetch directory listing and extract artifact filenames
 if command -v curl &> /dev/null; then
-  ARTIFACTS=$(curl -s "$RELEASE_URL/" | grep -oP 'href="\K[^"]+' | grep -E "\.tar\.gz$|\.tar\.bz2$|\.tar\.xz$|\.zip$" | grep -v "\.asc$\|\.sha\|\.md5" || true)
+  ARTIFACTS=$(curl -s "$RELEASE_URL/" | grep -oP 'href="\K[^"]+' | grep -E "\.tar\.gz$|\.tgz$|\.tar\.bz2$|\.tbz2$|\.tar\.xz$|\.txz$|\.zip$" | grep -v "\.asc$\|\.sha\|\.md5" || true)
 elif command -v wget &> /dev/null; then
-  ARTIFACTS=$(wget -q -O - "$RELEASE_URL/" | grep -oP 'href="\K[^"]+' | grep -E "\.tar\.gz$|\.tar\.bz2$|\.tar\.xz$|\.zip$" | grep -v "\.asc$\|\.sha\|\.md5" || true)
+  ARTIFACTS=$(wget -q -O - "$RELEASE_URL/" | grep -oP 'href="\K[^"]+' | grep -E "\.tar\.gz$|\.tgz$|\.tar\.bz2$|\.tbz2$|\.tar\.xz$|\.txz$|\.zip$" | grep -v "\.asc$\|\.sha\|\.md5" || true)
 else
   echo "[discover-verify] ❌ Neither curl nor wget is available"
   exit 1

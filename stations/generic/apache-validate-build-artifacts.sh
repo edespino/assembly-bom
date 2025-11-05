@@ -66,22 +66,36 @@ echo "[validate-build-artifacts] ========================================="
 echo "[validate-build-artifacts] Searching for Built JAR Files"
 echo "[validate-build-artifacts] ========================================="
 
-# Find all JAR files (excluding source and javadoc JARs for primary check)
-# We'll look in common build output directories
+# Find JAR files produced by this project (not third-party dependencies)
+# Strategy: Look for JARs in target/ directories that match the component name pattern
+# This excludes bundled third-party dependencies and focuses on project artifacts
 JAR_FILES=()
 while IFS= read -r -d '' jar_file; do
+  jar_basename=$(basename "$jar_file")
+
+  # Only check JARs that appear to be produced by this component
+  # Skip: test JARs, third-party dependencies, and bundled libraries
+  if [[ "$jar_basename" == *"-test-jar.jar" ]] ||
+     [[ "$jar_basename" == *"-tests.jar" ]] ||
+     [[ ! "$jar_basename" == "$COMPONENT_NAME"-* ]]; then
+    continue
+  fi
+
   JAR_FILES+=("$jar_file")
-done < <(find . -type f -name "*.jar" -print0 2>/dev/null || true)
+done < <(find . -path "*/target/*.jar" -type f -print0 2>/dev/null || true)
+
+TOTAL_JARS_FOUND=$(find . -type f -name "*.jar" 2>/dev/null | wc -l)
+echo "[validate-build-artifacts] Found $TOTAL_JARS_FOUND total JAR file(s)"
+echo "[validate-build-artifacts] Checking ${#JAR_FILES[@]} project-produced JAR(s) (excluding third-party dependencies)"
 
 if [[ ${#JAR_FILES[@]} -eq 0 ]]; then
-  echo "[validate-build-artifacts] ⚠ No JAR files found in build output"
+  echo "[validate-build-artifacts] ⚠ No project JAR files found matching pattern: $COMPONENT_NAME-*.jar"
   echo "[validate-build-artifacts]   Build may not have produced any artifacts yet"
   echo "[validate-build-artifacts]   Make sure the build step has completed successfully"
   echo "[validate-build-artifacts] ========================================="
   exit 0
 fi
 
-echo "[validate-build-artifacts] Found ${#JAR_FILES[@]} JAR file(s)"
 echo ""
 
 # Validation results
@@ -103,13 +117,13 @@ for jar_file in "${JAR_FILES[@]}"; do
   # Check if filename contains "incubating"
   if [[ "$jar_basename" == *"incubating"* ]]; then
     echo "[validate-build-artifacts] ✓ $jar_basename"
-    ((COMPLIANT_JARS++))
+    ((COMPLIANT_JARS++)) || true
   else
     echo "[validate-build-artifacts] ❌ $jar_basename"
     echo "[validate-build-artifacts]    MISSING 'incubating' in filename"
     VIOLATIONS+=("$jar_file")
     VALIDATION_PASSED=false
-    ((NONCOMPLIANT_JARS++))
+    ((NONCOMPLIANT_JARS++)) || true
   fi
 done
 

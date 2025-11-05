@@ -187,9 +187,14 @@ if [[ -f "NOTICE" ]]; then
 
   # Check for current year in copyright
   CURRENT_YEAR=$(date +%Y)
+
+  # Temporarily disable pipefail to avoid SIGPIPE issues with grep -q
+  set +o pipefail
   if grep -i "Copyright" NOTICE | grep -q "$CURRENT_YEAR"; then
+    set -o pipefail
     echo "[validate-apache-compliance] ✓ NOTICE copyright includes current year ($CURRENT_YEAR)"
   else
+    set -o pipefail
     echo "[validate-apache-compliance] ⚠ NOTICE copyright does not include current year ($CURRENT_YEAR)"
     echo "[validate-apache-compliance]   Apache policy requires copyright year to be updated"
     VALIDATION_PASSED=false

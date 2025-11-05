@@ -37,15 +37,32 @@ if ! command -v mvn &> /dev/null; then
   exit 1
 fi
 
+# Allow projects to customize the Maven command for RAT
+# Some projects use 'mvn validate' with RAT bound to lifecycle
+# Others use 'mvn apache-rat:check' for direct invocation
+RAT_MAVEN_COMMAND="${RAT_MAVEN_COMMAND:-apache-rat:check}"
+
 echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 1: Running Apache RAT"
 echo "[apache-rat] ========================================="
-echo "[apache-rat] Command: mvn apache-rat:check"
+echo "[apache-rat] Command: mvn $RAT_MAVEN_COMMAND"
+echo ""
+
+# Clean old rat.txt files to avoid stale data
+# This is important when switching between different RAT invocation methods
+echo "[apache-rat] Cleaning old RAT reports..."
+find . -name "rat.txt" -path "*/target/rat.txt" -delete 2>/dev/null || true
 echo ""
 
 # Run Apache RAT (allow it to fail - we'll check the report)
+# Note: We don't quote $RAT_MAVEN_COMMAND to allow word splitting
+# Temporarily restore default IFS to enable space-based word splitting
 set +e
-mvn apache-rat:check 2>&1 | tee /tmp/rat-maven-output.log
+(
+  IFS=$' \t\n'
+  # shellcheck disable=SC2086
+  mvn $RAT_MAVEN_COMMAND 2>&1 | tee /tmp/rat-maven-output.log
+)
 RAT_EXIT_CODE=$?
 set -e
 
@@ -72,22 +89,32 @@ MAVEN_OUTPUT="/tmp/rat-maven-output.log"
 
 # Extract summary from Maven output (more reliable than rat.txt)
 # Format: "[INFO] Rat check: Summary over all files. Unapproved: 194, unknown: 194, generated: 0, approved: 85 licenses."
-RAT_SUMMARY=$(grep "Rat check: Summary" "$MAVEN_OUTPUT" || echo "")
+# In multi-module builds, there will be one summary line per module - we need to sum them up
 
-if [[ -n "$RAT_SUMMARY" ]]; then
-  UNAPPROVED=$(echo "$RAT_SUMMARY" | sed -n 's/.*Unapproved: \([0-9]*\).*/\1/p')
-  UNKNOWN=$(echo "$RAT_SUMMARY" | sed -n 's/.*unknown: \([0-9]*\).*/\1/p')
-  GENERATED=$(echo "$RAT_SUMMARY" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')
-  APACHE_LICENSED=$(echo "$RAT_SUMMARY" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')
+RAT_SUMMARIES=$(grep "Rat check: Summary" "$MAVEN_OUTPUT" || echo "")
+
+if [[ -n "$RAT_SUMMARIES" ]]; then
+  # Sum up all values across all modules
+  UNAPPROVED=0
+  UNKNOWN=0
+  GENERATED=0
+  APACHE_LICENSED=0
+
+  while IFS= read -r line; do
+    UNAPPROVED=$((UNAPPROVED + $(echo "$line" | sed -n 's/.*Unapproved: \([0-9]*\).*/\1/p')))
+    UNKNOWN=$((UNKNOWN + $(echo "$line" | sed -n 's/.*unknown: \([0-9]*\).*/\1/p')))
+    GENERATED=$((GENERATED + $(echo "$line" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')))
+    APACHE_LICENSED=$((APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
+  done <<< "$RAT_SUMMARIES"
 else
-  # Fallback to parsing rat.txt
+  # Fallback to parsing rat.txt (single module case)
   APACHE_LICENSED=$(grep -E "^Apache Licensed: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
   GENERATED=$(grep -E "^Generated Documents: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
   UNKNOWN=$(grep -E "^Unknown Licenses: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
   UNAPPROVED="$UNKNOWN"
 fi
 
-# Extract file statistics from rat.txt
+# Extract file statistics from rat.txt (top-level summary)
 TOTAL_FILES=$(grep -E "^Notes: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
 BINARIES=$(grep -E "^Binaries: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
 ARCHIVES=$(grep -E "^Archives: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
@@ -128,8 +155,23 @@ echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 3: Files with Unknown Licenses"
 echo "[apache-rat] ========================================="
 
-# Files with unknown licenses are marked with '!?????' in RAT report
-UNKNOWN_FILES=$(grep -E '^\s+!\?\?\?\?\?' "$RAT_REPORT" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
+# Find all rat.txt files in module directories
+ALL_RAT_FILES=$(find "$EXTRACTED_DIR" -name "rat.txt" -path "*/target/rat.txt" 2>/dev/null || true)
+
+# Collect unknown files from all modules
+UNKNOWN_FILES=""
+if [[ -n "$ALL_RAT_FILES" ]]; then
+  while IFS= read -r rat_file; do
+    # Files with unknown licenses are marked with '!?????' in RAT report
+    MODULE_UNKNOWN=$(grep -E '^\s+!\?\?\?\?\?' "$rat_file" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
+    if [[ -n "$MODULE_UNKNOWN" ]]; then
+      UNKNOWN_FILES="${UNKNOWN_FILES}${MODULE_UNKNOWN}"$'\n'
+    fi
+  done <<< "$ALL_RAT_FILES"
+fi
+
+# Remove trailing newline
+UNKNOWN_FILES=$(echo -n "$UNKNOWN_FILES" | sed '/^$/d')
 
 if [[ -n "$UNKNOWN_FILES" ]]; then
   echo "[apache-rat] The following files are missing Apache license headers:"
