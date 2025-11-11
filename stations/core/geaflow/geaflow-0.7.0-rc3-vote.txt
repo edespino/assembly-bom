@@ -5,7 +5,7 @@ I have reviewed the Apache GeaFlow 0.7.0-incubating RC3 release candidate.
 Release Candidate: https://dist.apache.org/repos/dist/dev/incubator/geaflow/v0.7.0-rc3
 KEYS: https://downloads.apache.org/incubator/geaflow/KEYS
 
-My vote: +1 (non-binding)
+My vote: +1 (binding)
 
 ======================
 VALIDATION SUMMARY
@@ -58,4 +58,4 @@ Missing DISCLAIMER file             | FIXED
 194 files without license headers   | FIXED (0 files missing)
 JARs missing "incubating"           | FIXED (216/216 compliant)
 
-Excellent work by the release manager addressing all feedback!
+Excellent work by the release manager and dev community addressing all feedback!
