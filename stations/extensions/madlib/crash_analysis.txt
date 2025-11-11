@@ -1,0 +1,123 @@
+ALIGNMENT CORRUPTION CRASH ANALYSIS
+===================================
+
+Bug Location: /home/cbadmin/bom-parts/madlib/src/modules/linalg/metric.cpp:287-294
+Function: dist_fn_name()
+
+CRASH DETAILS
+-------------
+Server log: /home/cbadmin/pgdata14/logfile
+Error: TRAP: FailedAssertion("pointer == (void *) MAXALIGN(pointer)",
+       File: "memutils.h", Line: 124)
+Signal: SIGABRT (signal 6)
+
+Stack trace shows:
+  1. madlib::dbconnector::postgres::Allocator::free()
+  2. madlib::modules::linalg::dist_fn_name()
+  3. madlib::modules::linalg::closest_columns::run()
+
+ROOT CAUSE
+----------
+MADlib's custom allocator corrupts pointer metadata when used with C++11 ABI
+std::istringstream on systems with MAXIMUM_ALIGNOF < 16.
+
+CENTOS 7 vs ROCKY LINUX 9 DIFFERENCES
+--------------------------------------
+
+CentOS 7 (works or silently corrupts):
+  - GCC 4.8.5
+  - Old libstdc++ ABI (_GLIBCXX_USE_CXX11_ABI = 0)
+  - sizeof(std::string) = 8 bytes (just a pointer, no SSO)
+  - std::istringstream = simpler implementation
+  - String data always heap-allocated
+  - Different memory layout less likely to corrupt stored pointer
+
+Rocky Linux 9 (crashes):
+  - GCC 11.5.0
+  - New C++11 ABI (_GLIBCXX_USE_CXX11_ABI = 1)
+  - sizeof(std::string) = 32 bytes (complex layout with SSO)
+  - sizeof(std::istringstream) = 384 bytes (much larger)
+  - String data uses SSO for strings < 16 bytes
+  - Complex memory layout corrupts stored pointer at offset -8
+
+ALIGNMENT CORRUPTION MECHANISM
+-------------------------------
+
+1. MADlib's Allocator (when MAXIMUM_ALIGNOF = 8 < 16):
+   - palloc() returns:      0x1000 (8-byte aligned)
+   - Stores original at:    [0x1010 - 8] = 0x1000
+   - Returns to caller:     0x1010 (16-byte aligned)
+
+2. C++11 ABI std::string (32 bytes) memory layout:
+   Offset 0-7:   Pointer or SSO buffer start
+   Offset 8-15:  Capacity/mode info
+   Offset 16-23: SSO buffer continuation
+   Offset 24-31: Size/SSO buffer end
+
+3. std::istringstream (384 bytes) complex internal state:
+   - Multiple string objects
+   - Stream buffers with internal pointers
+   - Locale objects
+   - State flags and position markers
+
+4. THE BUG:
+   When istringstream's internal allocations/copies occur, one of the
+   allocated objects gets placed such that it OVERWRITES the stored
+   original pointer at [aligned_ptr - 8].
+
+5. During destruction:
+   - Allocator::free() reads: *(0x1010 - 8)
+   - Expected: 0x1000 (original pointer)
+   - Actual: 0x??????? (CORRUPTED data from string/stream)
+   - pfree(0x???????)
+   - Assert fails: 0x??????? != MAXALIGN(0x???????)
+   - SIGABRT
+
+VULNERABLE CODE
+---------------
+std::string dist_fn_name(string s)  // Pass by value = copy allocation
+{
+    std::istringstream ss(s);  // Creates 384-byte object with internal allocations
+    std::string token, fname;  // More allocations
+    if (std::getline(ss, token, '.')) fname = token;
+    if (std::getline(ss, token, '.')) fname = token;
+    return fname;  // Return by value = another copy
+}
+
+RECOMMENDED FIX
+---------------
+Replace with simpler string operations that avoid istringstream:
+
+std::string dist_fn_name(const string& s)  // Pass by const reference
+{
+    size_t pos = s.find_last_of('.');
+    if (pos != std::string::npos) {
+        return s.substr(pos + 1);
+    }
+    return s;
+}
+
+This avoids:
+  - std::istringstream's complex 384-byte object
+  - Multiple internal string allocations and copies
+  - The memory layout that corrupts the stored pointer
+
+ALTERNATIVE FIXES
+-----------------
+1. Disable custom alignment (set MAXIMUM_ALIGNOF >= 16 in PostgreSQL)
+2. Fix Allocator::makeAligned() to be more robust
+3. Use old C++ ABI (-D_GLIBCXX_USE_CXX11_ABI=0) - NOT RECOMMENDED
+4. Replace all istringstream usage with simpler alternatives
+
+TESTING
+-------
+Reproduce with:
+  SET ROLE "madlib_210_installcheck_postgres";
+  SET search_path=madlib_installcheck_linalg,madlib;
+  SELECT closest_columns(
+      ARRAY[ARRAY[0,0], ARRAY[0,1], ARRAY[1,0], ARRAY[0,1]]::DOUBLE PRECISION[][],
+      ARRAY[.5,.5]::DOUBLE PRECISION[],
+      2::INTEGER
+  );
+
+After fix, this should return successfully instead of crashing.

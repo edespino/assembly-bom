@@ -1,0 +1,1 @@
+../cloudberry/configure.sh

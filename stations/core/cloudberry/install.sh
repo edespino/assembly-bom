@@ -81,8 +81,23 @@ if [[ -f "$INSTALL_PREFIX/cloudberry-env.sh" ]]; then
   # Source the cloudberry environment to get pg_config in PATH
   source "$INSTALL_PREFIX/cloudberry-env.sh"
 
-  # Install PyGreSQL using system python3 with cloudberry pg_config
-  pygresql_cmd=(sudo env PATH="$PATH" pip3 install PyGreSQL)
+  # Detect OS and use appropriate installation method
+  OS_ID=""
+  OS_VERSION_ID=""
+  if [[ -f /etc/os-release ]]; then
+    OS_ID=$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+    OS_VERSION_ID=$(grep -E '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+  fi
+
+  # Install PyGreSQL using appropriate method for the platform
+  if [[ "$OS_ID" == "debian" && "$OS_VERSION_ID" == "12" ]]; then
+    log "Detected Debian 12 - using apt-get for PyGreSQL installation"
+    pygresql_cmd=(sudo apt-get install -y python3-pygresql)
+  else
+    log "Using pip3 for PyGreSQL installation"
+    pygresql_cmd=(sudo env PATH="$PATH" pip3 install PyGreSQL)
+  fi
+
   log "Running PyGreSQL install:"
   printf '  %s\n' "${pygresql_cmd[@]}"
   "${pygresql_cmd[@]}"

@@ -36,12 +36,16 @@ products:
             - configure
             - build
             - install
+            - gpinitsystem
+            - setup-multinode
             - create-demo-cluster
             - unittest
             - installcheck
             - gpstart
             - gpstop
             - gprestart
+            - gprecoverseg-test
+            - gprecoverseg-multinode-test
           test_configs:
             - name: "default"
               pgoptions: "-c optimizer=on"
@@ -61,6 +65,42 @@ products:
               target: "regress_test"
               directory: "contrib/pax_storage"
               description: "PAX storage - test Installcheck with optimizer enabled"
+
+        - name: postgres15
+          url: https://github.com/postgres/postgres.git
+          branch: REL_15_STABLE
+          configure_flags: |
+            --with-python
+            --enable-cassert
+            --enable-debug
+            --with-libxml
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - initdb
+            - start
+            - installcheck
+            - stop
+
+        - name: postgres14
+          url: https://github.com/postgres/postgres.git
+          branch: REL_14_STABLE
+          configure_flags: |
+            --with-python
+            --enable-cassert
+            --enable-debug
+            --with-libxml
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - initdb
+            - start
+            - installcheck
+            - stop
 
       extensions:
         - name: pxf
@@ -90,6 +130,11 @@ products:
             - test
             - crash-test
 
+        - name: madlib
+          url: git@github.com:edespino/madlib.git
+          branch: pr-627
+          configure_flags: []
+
       utilities:
         - name: wal-g
           url: https://github.com/wal-g/wal-g.git
@@ -106,6 +151,12 @@ products:
             - install
             - test
             - extended-test
+
+        - name: pax_benchmark
+          url: git@github.com:edespino/pax_benchmark.git
+          branch: main
+          steps:
+            - clone
 
       dependencies:
         - name: libsodium
@@ -170,6 +221,16 @@ products:
           configure_flags: |
             --prefix=/usr/local/gdal-3.5.3
             --with-proj=/usr/local/proj6
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+
+        - name: doxygen
+          url: https://github.com/doxygen/doxygen.git
+          branch: master
+          configure_flags: []
           steps:
             - clone
             - configure

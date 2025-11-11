@@ -1,0 +1,75 @@
+products:
+  apache-releases:
+    components:
+      # Apache GeaFlow - Incubator project
+      core:
+        - name: fluss
+          env:
+            RELEASE_VERSION: "0.8.0"
+            RELEASE_CANDIDATE: "rc1"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/fluss/fluss-0.8.0-incubating-rc1"
+            KEYS_URL: "https://dist.apache.org/repos/dist/release/incubator/fluss/KEYS"
+            # Fluss uses <inherited>false</inherited> for RAT plugin
+            # Must run via 'validate' lifecycle to use parent's exclusions
+            # Skip spotless (requires JVM 11+) and enforcer (version checks)
+            RAT_MAVEN_COMMAND: "validate -Dspotless.check.skip=true -Denforcer.skip=true -DskipTests"
+            # Test mode: "unit" (default, faster) or "integration" (comprehensive)
+            TEST_MODE: "unit"
+            HADOOP_CLASSPATH: "/opt/hadoop-3.3.6/share/hadoop/common/*:/opt/hadoop-3.3.6/share/hadoop/common/lib/*:/opt/hadoop-3.3.6/share/hadoop/hdfs/*:/opt/hadoop-3.3.6/share/hadoop/hdfs/lib/*"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+            - apache-rat
+            - build
+            - apache-validate-build-artifacts
+            - test
+
+        - name: geaflow
+          env:
+            RELEASE_VERSION: "0.7.0"
+            RELEASE_CANDIDATE: "rc3"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/v0.7.0-rc3"
+            KEYS_URL: "https://downloads.apache.org/incubator/geaflow/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+            - apache-rat
+            - build
+            - apache-validate-build-artifacts
+            - test
+
+        # Apache Toree - Incubator project
+        - name: toree
+          env:
+            RELEASE_VERSION: "0.6.0"
+            RELEASE_CANDIDATE: "rc1"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/toree/0.6.0-incubating-rc1/toree"
+            KEYS_URL: "https://dist.apache.org/repos/dist/release/incubator/toree/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+            - apache-review-license-compliance
+
+        # Apache Gluten - Incubator project
+        - name: gluten
+          env:
+            RELEASE_VERSION: "1.5.0"
+            RELEASE_CANDIDATE: "rc1"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/gluten/1.5.0-incubating-rc1"
+            KEYS_URL: "https://dist.apache.org/repos/dist/dev/incubator/gluten/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+            - build
+            - apache-validate-build-artifacts
+
+      # Build tool dependencies
+      dependencies:
+        - name: sbt
+          steps:
+            - setup-repo
+            - install

@@ -1,6 +1,11 @@
 # 🔩 Assembly BOM
 
-**Assembly BOM** is a Software Bill of Materials (SBOM) development tool that provides systematic build orchestration for the Apache Cloudberry ecosystem. It uses a declarative `bom.yaml` to define components, dependencies, and build steps — enabling reproducible, portable builds with release engineering discipline.
+**Assembly BOM** is a Software Bill of Materials (SBOM) development tool that provides systematic build orchestration for software projects. It uses declarative BOM files to define components, dependencies, and build steps — enabling reproducible, portable builds with release engineering discipline.
+
+Primary use cases:
+- **Apache Cloudberry Ecosystem** (`cloudberry-bom.yaml`) - Complete database build with geospatial dependencies
+- **Warehouse-PG Database** (`warehouse-pg-bom.yaml`) - Warehouse-PG WHPG_7_2_STABLE branch build and validation
+- **Apache Release Validation** (`apache-bom.yaml`) - Cryptographic verification of Apache Software Foundation releases
 
 ---
 
@@ -21,7 +26,9 @@ Assembly BOM brings industry-standard SBOM practices to development workflows, p
 ```
 assembly-bom/
 ├── assemble.sh                           # Main build orchestrator
-├── bom.yaml                              # Software Bill of Materials
+├── cloudberry-bom.yaml                   # Cloudberry Database SBOM (default)
+├── warehouse-pg-bom.yaml                 # Warehouse-PG Database SBOM
+├── apache-bom.yaml                       # Apache release validation SBOM
 ├── config/
 │   ├── bootstrap.sh                      # Toolchain setup
 │   ├── env.sh                           # Environment configuration
@@ -59,7 +66,48 @@ assembly-bom/
 
 ---
 
-## ✍️ Current `bom.yaml` Structure
+## 📋 Multiple BOM Files
+
+Assembly BOM supports multiple BOM configurations for different products and workflows:
+
+### List Available BOMs
+```bash
+# Show all available BOM files
+./assemble.sh -B
+# or
+./assemble.sh --list-boms
+```
+
+**Output:**
+```
+[assemble] Available BOM files:
+
+  apache-bom.yaml
+    Product: apache-releases
+  cloudberry-bom.yaml (default)
+    Product: cloudberry
+  warehouse-pg-bom.yaml
+    Product: cloudberry
+
+Usage: ./assemble.sh -b <bom-file> [options]
+```
+
+### Select BOM File
+```bash
+# Use default (cloudberry-bom.yaml)
+./assemble.sh -l
+
+# Use Apache release validation BOM
+./assemble.sh -b apache-bom.yaml -l
+# or
+./assemble.sh --bom-file apache-bom.yaml -l
+```
+
+---
+
+## ✍️ BOM Structure Examples
+
+### Cloudberry Database BOM (`cloudberry-bom.yaml`)
 
 ```yaml
 products:
@@ -131,6 +179,41 @@ products:
         # ... additional dependencies
 ```
 
+### Apache Release Validation BOM (`apache-bom.yaml`)
+
+```yaml
+products:
+  apache-releases:
+    components:
+      core:
+        - name: resilientdb
+          env:
+            RELEASE_VERSION: "1.11.0"
+            RELEASE_CANDIDATE: "rc6"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/resilientdb/1.11.0-rc6/resilientdb"
+            KEYS_URL: "https://dist.apache.org/repos/dist/dev/incubator/resilientdb/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+
+        - name: toree
+          env:
+            RELEASE_VERSION: "0.6.0"
+            RELEASE_CANDIDATE: "rc1"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/toree/0.6.0-incubating-rc1/toree"
+            KEYS_URL: "https://dist.apache.org/repos/dist/release/incubator/toree/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-compliance
+```
+
+**Apache-Specific Steps:**
+- `apache-discover-and-verify-release` - Auto-discovers artifacts, verifies GPG signatures and SHA512 checksums
+- `apache-extract-discovered` - Extracts all discovered source and binary artifacts
+- `apache-validate-compliance` - Validates LICENSE, NOTICE (current year), DISCLAIMER files, and KEYS file location (incubator projects)
+
 ---
 
 ## ⚙️ Quick Start
@@ -142,9 +225,15 @@ sudo dnf install -y gmp-devel mpfr-devel sqlite-devel protobuf-c protobuf-c-deve
 sudo dnf install -y libxslt docbook-style-xsl
 ```
 
-### 2. Build Commands
+### 2. List Available BOMs
 ```bash
-# Show all components and build order
+# Show all available BOM files
+./assemble.sh -B
+```
+
+### 3. Cloudberry Database Build
+```bash
+# Show all components and build order (uses cloudberry-bom.yaml by default)
 ./assemble.sh -l
 
 # Show detailed component information
@@ -167,7 +256,30 @@ sudo dnf install -y libxslt docbook-style-xsl
 ./assemble.sh --dry-run
 ```
 
-### 3. Individual Station Execution
+### 4. Apache Release Validation
+```bash
+# List Apache release components
+./assemble.sh -b apache-bom.yaml -l
+
+# Validate Apache ResilientDB 1.11.0-rc6
+./assemble.sh -b apache-bom.yaml --run --component resilientdb
+
+# Validate all Apache releases
+./assemble.sh -b apache-bom.yaml --run
+
+# Show validation details
+./assemble.sh -b apache-bom.yaml -D -c resilientdb
+```
+
+**Validation Process:**
+1. Auto-discovers all artifacts (source + binary tarballs) from release URL
+2. Downloads KEYS file and imports GPG keys
+3. Verifies GPG signatures (.asc files) for all artifacts
+4. Verifies SHA512 checksums for all artifacts
+5. Extracts all artifacts
+6. Validates LICENSE, NOTICE (with current year check), and DISCLAIMER files
+
+### 5. Individual Station Execution
 ```bash
 # Run individual build steps directly
 NAME=cloudberry INSTALL_PREFIX=/usr/local/cloudberry ./stations/core/cloudberry/build.sh

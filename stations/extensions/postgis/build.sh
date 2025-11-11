@@ -16,6 +16,14 @@ if [ -z "$NAME" ]; then
   exit 1
 fi
 
+# Determine script directory BEFORE changing directories
+# (works for both direct execution and sourcing)
+if [ -n "${BASH_SOURCE[0]:-}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
+
 # Navigate to PostGIS build directory
 POSTGIS_BUILD_DIR="$PARTS_DIR/$NAME/postgis/build/postgis-3.3.2"
 cd "$POSTGIS_BUILD_DIR" || {
@@ -37,23 +45,6 @@ if [ -n "${CFLAGS:-}" ]; then
   make -j"$NPROC" CFLAGS_EXTRA="${CFLAGS}" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
 else
   make -j"$NPROC" 2>&1 | tee "build-$(date '+%Y%m%d-%H%M%S').log"
-fi
-
-# Apply patch to fix plpython3u dependency issue in regression tests
-PATCH_FILE="$(dirname "$(readlink -f "$0")")/postgis-plpython-fix.patch"
-if [ -f "$PATCH_FILE" ]; then
-  # Check if patch is already applied by looking for template1 in run_test.pl
-  if grep -q "template=template0" regress/run_test.pl 2>/dev/null; then
-    echo "    Applying PostGIS regression test fix for plpython3u..."
-    patch -p1 < "$PATCH_FILE" || {
-      echo "Warning: Failed to apply PostGIS regression test patch"
-      echo "This may cause tiger geocoder tests to fail"
-    }
-  else
-    echo "    PostGIS regression test patch already applied (using template1)"
-  fi
-else
-  echo "Warning: PostGIS regression test patch not found at $PATCH_FILE"
 fi
 
 echo "✅ build step complete for $NAME"
