@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Assembly BOM is a Software Bill of Materials (SBOM) development tool supporting multiple products through separate BOM configurations:
 
 - **Cloudberry Database Ecosystem** (`cloudberry-bom.yaml`, default) - Complete database build with geospatial dependencies
+- **Warehouse-PG Database** (`warehouse-pg-bom.yaml`) - Warehouse-PG WHPG_7_2_STABLE branch build and validation
 - **Apache Release Validation** (`apache-bom.yaml`) - Cryptographic verification of Apache Software Foundation releases
 
 See README.md for user documentation and architecture overview.
@@ -21,6 +22,10 @@ See README.md for user documentation and architecture overview.
 # Cloudberry development (default BOM)
 ./assemble.sh --dry-run --component <component>
 ./assemble.sh --run --component <component> --steps <step> --force
+
+# Warehouse-PG development
+./assemble.sh -b warehouse-pg-bom.yaml --run --component warehouse-pg
+./assemble.sh -b warehouse-pg-bom.yaml -l
 
 # Apache release validation
 ./assemble.sh -b apache-bom.yaml --run --component <component>

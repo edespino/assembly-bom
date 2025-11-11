@@ -1,0 +1,59 @@
+---
+products:
+  cloudberry:
+    components:
+      core:
+        - name: warehouse-pg
+          url: https://github.com/warehouse-pg/warehouse-pg.git
+          branch: WHPG_7_2_STABLE
+          configure_flags: |
+            --enable-gpcloud
+            --enable-gpfdist
+            --enable-ic-proxy
+            --enable-orafce
+            --enable-orca
+            --enable-tap-tests
+            --with-gssapi
+            --with-llvm
+            --with-ldap
+            --with-libbz2
+            --with-libcurl
+            --with-libxml
+            --with-openssl
+            --with-pam
+            --with-perl
+            --with-pgport=5432
+            --with-python
+            --with-uuid=e2fs
+            --with-zstd
+          steps:
+            - clone
+            - configure
+            - build
+            - install
+            - gpinitsystem
+            - create-demo-cluster
+            - unittest
+            - installcheck
+            - gpstart
+            - gpstop
+            - gprestart
+          test_configs:
+            - name: "default"
+              pgoptions: "-c optimizer=on"
+              target: "installcheck"
+              description: "Installcheck with optimizer enabled"
+            - name: "ic-good-opt-off"
+              pgoptions: "-c optimizer=off"
+              target: "installcheck"
+              description: "Installcheck with optimizer disabled"
+            - name: "pax-ic-good-opt-off:pax-test"
+              pgoptions: "-c optimizer=off -c default_table_access_method=pax"
+              target: "pax-test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage - test Installcheck with optimizer enabled"
+            - name: "pax-ic-good-opt-off:regress_test"
+              pgoptions: "-c optimizer=off -c default_table_access_method=pax"
+              target: "regress_test"
+              directory: "contrib/pax_storage"
+              description: "PAX storage - test Installcheck with optimizer enabled"

@@ -4,6 +4,7 @@
 
 Primary use cases:
 - **Cloudberry Database Ecosystem** (`cloudberry-bom.yaml`) - Complete database build with geospatial dependencies
+- **Warehouse-PG Database** (`warehouse-pg-bom.yaml`) - Warehouse-PG WHPG_7_2_STABLE branch build and validation
 - **Apache Release Validation** (`apache-bom.yaml`) - Cryptographic verification of Apache Software Foundation releases
 
 ---
@@ -26,6 +27,7 @@ Assembly BOM brings industry-standard SBOM practices to development workflows, p
 assembly-bom/
 ├── assemble.sh                           # Main build orchestrator
 ├── cloudberry-bom.yaml                   # Cloudberry Database SBOM (default)
+├── warehouse-pg-bom.yaml                 # Warehouse-PG Database SBOM
 ├── apache-bom.yaml                       # Apache release validation SBOM
 ├── config/
 │   ├── bootstrap.sh                      # Toolchain setup
@@ -83,6 +85,8 @@ Assembly BOM supports multiple BOM configurations for different products and wor
   apache-bom.yaml
     Product: apache-releases
   cloudberry-bom.yaml (default)
+    Product: cloudberry
+  warehouse-pg-bom.yaml
     Product: cloudberry
 
 Usage: ./assemble.sh -b <bom-file> [options]
