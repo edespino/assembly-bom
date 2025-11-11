@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Assembly BOM is a Software Bill of Materials (SBOM) development tool supporting multiple products through separate BOM configurations:
 
-- **Cloudberry Database Ecosystem** (`cloudberry-bom.yaml`, default) - Complete database build with geospatial dependencies
+- **Apache Cloudberry Ecosystem** (`cloudberry-bom.yaml`, default) - Complete database build with geospatial dependencies
 - **Warehouse-PG Database** (`warehouse-pg-bom.yaml`) - Warehouse-PG WHPG_7_2_STABLE branch build and validation
 - **Apache Release Validation** (`apache-bom.yaml`) - Cryptographic verification of Apache Software Foundation releases
 

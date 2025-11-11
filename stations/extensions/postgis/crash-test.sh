@@ -38,7 +38,7 @@ for cmd in psql gdb sudo; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         log_error "Required command not found: $cmd"
         case "$cmd" in
-            psql) log_info "Install Cloudberry Database or ensure it's in PATH" ;;
+            psql) log_info "Install Apache Cloudberry or ensure it's in PATH" ;;
             gdb) log_info "Install gdb: dnf install gdb" ;;
             sudo) log_info "sudo access required for core file management" ;;
         esac
@@ -48,10 +48,10 @@ done
 log_success "All required commands available"
 
 # Verify database connectivity
-log_step "Testing Cloudberry Database connectivity"
+log_step "Testing Apache Cloudberry connectivity"
 DB_VERSION=$(psql -p 7000 -d postgres -t -c "SELECT version();" 2>/dev/null | head -1 | xargs || echo "")
 if [[ -z "$DB_VERSION" ]]; then
-    log_error "Cannot connect to Cloudberry Database on port 7000"
+    log_error "Cannot connect to Apache Cloudberry on port 7000"
     log_info "Start the database cluster first:"
     log_info "  gpstart"
     log_info "  OR"

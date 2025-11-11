@@ -31,7 +31,7 @@ Testing of the official Cloudberry PostGIS documentation examples reveals **crit
 ## Detailed Crash Analysis
 
 ### **Critical Function: ST_AsText()**
-The `ST_AsText()` function is fundamental to PostGIS operations - it converts internal geometry format to human-readable Well-Known Text (WKT). **This function crashes 100% of the time** in Cloudberry Database.
+The `ST_AsText()` function is fundamental to PostGIS operations - it converts internal geometry format to human-readable Well-Known Text (WKT). **This function crashes 100% of the time** in Apache Cloudberry.
 
 ### **Impact on Distributed Processing**
 ```
@@ -162,4 +162,4 @@ The official documentation at https://cloudberry.apache.org/docs/advanced-analyt
 
 ---
 
-**⚠️ CRITICAL PRODUCTION WARNING**: The official Cloudberry Database PostGIS documentation contains examples that crash segment processes and generate core dumps. Do not use ST_AsText() or geometry display operations in production environments.
+**⚠️ CRITICAL PRODUCTION WARNING**: The official Apache Cloudberry PostGIS documentation contains examples that crash segment processes and generate core dumps. Do not use ST_AsText() or geometry display operations in production environments.

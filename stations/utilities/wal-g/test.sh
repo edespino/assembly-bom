@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # --------------------------------------------------------------------
 # File     : stations/utilities/wal-g/test.sh
-# Purpose  : Test script for wal-g backup utility with Cloudberry Database
+# Purpose  : Test script for wal-g backup utility with Apache Cloudberry
 # Inputs   :
 #   - NAME           : name of the component (default: wal-g)
 # --------------------------------------------------------------------
