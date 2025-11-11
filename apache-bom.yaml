@@ -28,9 +28,9 @@ products:
         - name: geaflow
           env:
             RELEASE_VERSION: "0.7.0"
-            RELEASE_CANDIDATE: "rc1"
-            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/v0.7.0-rc1"
-            KEYS_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/KEYS"
+            RELEASE_CANDIDATE: "rc3"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/geaflow/v0.7.0-rc3"
+            KEYS_URL: "https://downloads.apache.org/incubator/geaflow/KEYS"
           steps:
             - apache-discover-and-verify-release
             - apache-extract-discovered
