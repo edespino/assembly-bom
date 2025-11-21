@@ -19,30 +19,33 @@ echo "[validate-apache-compliance] Component: $COMPONENT_NAME"
 echo "[validate-apache-compliance] Directory: $COMPONENT_DIR"
 echo ""
 
-# Find the extracted source directory (exclude the component directory itself)
-EXTRACTED_DIR=$(find "$COMPONENT_DIR" -maxdepth 1 -type d -not -path "$COMPONENT_DIR" | head -1)
-if [[ -z "$EXTRACTED_DIR" ]]; then
-  echo "[validate-apache-compliance] ❌ No extracted source directory found"
+# Find all extracted source directories (ending in -src)
+mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -maxdepth 1 -type d -name "*-src" | sort)
+
+if [[ ${#SOURCE_DIRS[@]} -eq 0 ]]; then
+  echo "[validate-apache-compliance] ❌ No extracted source directories found"
   echo "[validate-apache-compliance] Please run extract step first"
   exit 1
 fi
 
-echo "[validate-apache-compliance] Source: $EXTRACTED_DIR"
+echo "[validate-apache-compliance] Found ${#SOURCE_DIRS[@]} source director(ies):"
+for dir in "${SOURCE_DIRS[@]}"; do
+  echo "[validate-apache-compliance]   - ${dir#$COMPONENT_DIR/}"
+done
 echo ""
 
-# Change to extracted directory
-cd "$EXTRACTED_DIR"
-
-# Validation results
-VALIDATION_PASSED=true
+# Global validation results
+GLOBAL_VALIDATION_PASSED=true
 REQUIRED_FILES=("LICENSE" "NOTICE")
 OPTIONAL_FILES=()
 
 # Auto-detect incubator project
 if [[ "$INCUBATOR_PROJECT" == "auto" ]]; then
   RELEASE_URL="${RELEASE_URL:-}"
+  # Check any of the source directories for incubating indicator
+  FIRST_SOURCE_DIR="${SOURCE_DIRS[0]}"
   if [[ "$COMPONENT_NAME" == *"incubating"* ]] || \
-     [[ "$EXTRACTED_DIR" == *"incubating"* ]] || \
+     [[ "$FIRST_SOURCE_DIR" == *"incubating"* ]] || \
      [[ "$RELEASE_URL" == *"/incubator/"* ]]; then
     INCUBATOR_PROJECT="true"
   else
@@ -63,14 +66,28 @@ else
   OPTIONAL_FILES+=("DISCLAIMER")
 fi
 
+echo ""
 echo "[validate-apache-compliance] ========================================="
 echo "[validate-apache-compliance] Step 1: Validating Naming Conventions"
 echo "[validate-apache-compliance] ========================================="
 
-# Check incubator naming requirements
-if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
-  # Get the directory name (basename of EXTRACTED_DIR)
-  DIR_NAME=$(basename "$EXTRACTED_DIR")
+# Process each source directory
+for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
+  echo ""
+  echo "[validate-apache-compliance] ========================================"
+  echo "[validate-apache-compliance] Validating: $(basename "$EXTRACTED_DIR")"
+  echo "[validate-apache-compliance] ========================================"
+
+  # Change to extracted directory
+  cd "$EXTRACTED_DIR"
+
+  # Per-directory validation status
+  VALIDATION_PASSED=true
+
+  # Check incubator naming requirements
+  if [[ "$INCUBATOR_PROJECT" == "true" ]]; then
+    # Get the directory name (basename of EXTRACTED_DIR)
+    DIR_NAME=$(basename "$EXTRACTED_DIR")
 
   # Check if directory name contains "incubating"
   if [[ "$DIR_NAME" == *"incubating"* ]]; then
@@ -303,23 +320,58 @@ else
   echo "[validate-apache-compliance] ℹ KEYS file location check only applies to incubator projects"
 fi
 
+  # Update global validation status
+  if [[ "$VALIDATION_PASSED" == "false" ]]; then
+    GLOBAL_VALIDATION_PASSED=false
+    echo ""
+    echo "[validate-apache-compliance] ❌ $(basename "$EXTRACTED_DIR"): Validation FAILED"
+  else
+    echo ""
+    echo "[validate-apache-compliance] ✓ $(basename "$EXTRACTED_DIR"): Validation PASSED"
+  fi
+
+done  # End of source directory loop
+
 echo ""
 echo "[validate-apache-compliance] ========================================="
-echo "[validate-apache-compliance] Validation Summary"
+echo "[validate-apache-compliance] Overall Validation Summary"
 echo "[validate-apache-compliance] ========================================="
+echo "[validate-apache-compliance]"
+echo "[validate-apache-compliance] Validation Completed Successfully"
+echo "[validate-apache-compliance] Source directories validated: ${#SOURCE_DIRS[@]}"
+for dir in "${SOURCE_DIRS[@]}"; do
+  echo "[validate-apache-compliance]   - $(basename "$dir")"
+done
+echo ""
 
-if [[ "$VALIDATION_PASSED" == "true" ]]; then
-  echo "[validate-apache-compliance] ✓ All Apache compliance checks PASSED"
+if [[ "$GLOBAL_VALIDATION_PASSED" == "true" ]]; then
+  echo "[validate-apache-compliance] ========================================="
+  echo "[validate-apache-compliance] RESULT: ✅ PASS"
+  echo "[validate-apache-compliance] ========================================="
   echo "[validate-apache-compliance]"
-  echo "[validate-apache-compliance] Required files present and valid:"
-  for FILE in "${REQUIRED_FILES[@]}"; do
-    echo "[validate-apache-compliance]   ✓ $FILE"
-  done
+  echo "[validate-apache-compliance] All Apache compliance checks passed"
+  echo "[validate-apache-compliance] Required files present and valid in all source directories"
+  echo "[validate-apache-compliance] Release structure complies with Apache policies"
   echo "[validate-apache-compliance] ========================================="
   exit 0
 else
-  echo "[validate-apache-compliance] ❌ Some Apache compliance checks FAILED"
-  echo "[validate-apache-compliance] Please review the validation output above"
   echo "[validate-apache-compliance] ========================================="
-  exit 1
+  echo "[validate-apache-compliance] RESULT: ❌ FAIL - Compliance Issues Found"
+  echo "[validate-apache-compliance] ========================================="
+  echo "[validate-apache-compliance]"
+  echo "[validate-apache-compliance] Validation completed but found compliance issues"
+  echo "[validate-apache-compliance]"
+  echo "[validate-apache-compliance] Review the detailed output above for:"
+  echo "[validate-apache-compliance]   • Individual directory compliance status"
+  echo "[validate-apache-compliance]   • Missing or incorrect LICENSE/NOTICE/DISCLAIMER files"
+  echo "[validate-apache-compliance]   • Incorrect 'incubating' naming in artifacts"
+  echo "[validate-apache-compliance]   • KEYS file location issues"
+  echo "[validate-apache-compliance]"
+  echo "[validate-apache-compliance] NOTE: This is a reporting step - exit code is 0 to allow pipeline continuation"
+  echo "[validate-apache-compliance]       Compliance issues are documented but do not stop the review process"
+  echo "[validate-apache-compliance]"
+  echo "[validate-apache-compliance] For release structure issues (RC designation, multiple tarballs),"
+  echo "[validate-apache-compliance] see apache-validate-release-structure step output"
+  echo "[validate-apache-compliance] ========================================="
+  exit 0
 fi

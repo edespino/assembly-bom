@@ -1,0 +1,231 @@
+Apache HugeGraph 1.7.0 Compliance Validation Summary
+=====================================================
+Date: 2025-11-20
+Validator: Apache Compliance Automation (assembly-bom)
+
+OVERALL RESULT: ❌ FAILED - Multiple Critical Issues
+
+=====================================================
+CRITICAL ISSUES DETECTED
+=====================================================
+
+ISSUE #1: Missing RC Designation in Release URL
+------------------------------------------------
+Severity: CRITICAL - Release Process Violation
+
+Current URL:
+  https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0
+
+Expected URL:
+  https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0-rc1
+
+Problem:
+- Release candidates MUST be identified as RC1, RC2, etc.
+- Current URL appears to be a final release, not a candidate
+- Impossible to distinguish between multiple iterations
+- Violates Apache staging conventions
+
+Impact:
+- Users cannot identify which candidate is being voted on
+- If multiple RCs are needed, no way to version them
+- Breaks established Apache release management practices
+
+Reference:
+- Apache Release Guide: https://www.apache.org/legal/release-policy.html
+
+
+ISSUE #2: Multiple Source Tarballs in Single Release
+-----------------------------------------------------
+Severity: CRITICAL - Release Policy Violation
+
+Found 4 source tarballs:
+  1. apache-hugegraph-incubating-1.7.0-src.tar.gz
+  2. apache-hugegraph-ai-incubating-1.7.0-src.tar.gz
+  3. apache-hugegraph-computer-incubating-1.7.0-src.tar.gz
+  4. apache-hugegraph-toolchain-incubating-1.7.0-src.tar.gz
+
+Problem:
+- Apache releases are defined by repository, not umbrella project
+- Each repository requires a separate vote
+- Bundling violates release independence
+- Users cannot verify which repository produced each tarball
+
+Required Approach:
+Create 4 separate release votes:
+  [VOTE] Release Apache HugeGraph Core 1.7.0-incubating (RC1)
+  [VOTE] Release Apache HugeGraph AI 1.7.0-incubating (RC1)
+  [VOTE] Release Apache HugeGraph Computer 1.7.0-incubating (RC1)
+  [VOTE] Release Apache HugeGraph Toolchain 1.7.0-incubating (RC1)
+
+Reference:
+- Apache Release Policy: https://www.apache.org/legal/release-policy.html
+- Section: "What Must Every ASF Release Contain"
+
+
+ISSUE #3: Built Artifacts Missing 'incubating' in Filenames
+------------------------------------------------------------
+Severity: CRITICAL - Incubator Policy Violation
+
+Build Validation Results:
+- Total artifacts checked: 60
+  • JAR files: 58 (from 3 Maven projects)
+  • Python wheels: 1
+  • Python source distributions: 1
+- Compliant: 1 (1.7%)
+- Non-compliant: 59 (98.3%)
+
+Problem:
+- Almost all built artifacts use version "1.7.0" instead of "1.7.0-incubating"
+- Apache Incubator policy REQUIRES "incubating" in all artifact names
+
+Maven/JAR violations (57 out of 58):
+  From apache-hugegraph-incubating (39 JARs):
+    - hugegraph-core-1.7.0.jar (should be: hugegraph-core-1.7.0-incubating.jar)
+    - hg-pd-client-1.7.0.jar (should be: hg-pd-client-1.7.0-incubating.jar)
+    ... (37 more violations)
+
+  From apache-hugegraph-toolchain (10 JARs):
+    - hugegraph-loader-1.7.0.jar (should be: hugegraph-loader-1.7.0-incubating.jar)
+    - hugegraph-hubble-1.7.0.jar (should be: hugegraph-hubble-1.7.0-incubating.jar)
+    ... (8 more violations)
+
+  From apache-hugegraph-computer/computer (9 JARs):
+    - computer-algorithm-1.7.0.jar (should be: computer-algorithm-1.7.0-incubating.jar)
+    - computer-api-1.7.0.jar (should be: computer-api-1.7.0-incubating.jar)
+    - computer-core-1.7.0.jar (should be: computer-core-1.7.0-incubating.jar)
+    ... (6 more violations)
+
+Python violations (2 out of 2):
+  - hugegraph_ai-1.7.0-py3-none-any.whl (should be: hugegraph_ai-1.7.0.incubating-py3-none-any.whl)
+  - hugegraph_ai-1.7.0.tar.gz (should be: hugegraph_ai-1.7.0.incubating.tar.gz)
+
+Root Cause:
+- Maven POM files use `<version>1.7.0</version>` instead of `<version>1.7.0-incubating</version>`
+  • apache-hugegraph-incubating/pom.xml (affects 39 JARs)
+  • apache-hugegraph-toolchain/pom.xml (affects 10 JARs)
+  • apache-hugegraph-computer/computer/pom.xml uses `<revision>1.7.0</revision>` (affects 9 JARs)
+- Python pyproject.toml uses `version = "1.7.0"` instead of `version = "1.7.0.incubating"`
+- Version not consistently propagated through all modules
+
+Only 1 Compliant Artifact Found:
+  ✓ apache-hugegraph-loader-incubating-1.7.0-shaded.jar (correct naming)
+
+Required Fix:
+Maven projects:
+1. Update root POM version to "1.7.0-incubating"
+2. Ensure all module POMs inherit the incubating version
+3. Rebuild: mvn clean install -DskipTests
+
+Python project:
+1. Update pyproject.toml version to "1.7.0.incubating"
+2. Rebuild: python3 -m build
+
+Reference:
+- Apache Incubator Policy: https://incubator.apache.org/policy/incubation.html
+- Release artifact naming requirements
+
+
+=====================================================
+INDIVIDUAL SOURCE DIRECTORY COMPLIANCE
+=====================================================
+
+IF these were separate releases, each would pass compliance:
+
+✅ apache-hugegraph-incubating-1.7.0-src
+   - LICENSE: Apache License 2.0 ✓
+   - NOTICE: Correct attribution, current year (2025) ✓
+   - DISCLAIMER: Incubation status present ✓
+   - Naming: Contains "incubating" ✓
+   - RAT: 1,901 files, all with Apache headers ✓
+
+✅ apache-hugegraph-ai-incubating-1.7.0-src
+   - LICENSE: Present and valid ✓
+   - NOTICE: Correct attribution ✓
+   - DISCLAIMER: Present ✓
+   - Naming: Contains "incubating" ✓
+
+✅ apache-hugegraph-computer-incubating-1.7.0-src
+   - LICENSE: Present and valid ✓
+   - NOTICE: Correct attribution ✓
+   - DISCLAIMER: Present ✓
+   - Naming: Contains "incubating" ✓
+
+✅ apache-hugegraph-toolchain-incubating-1.7.0-src
+   - LICENSE: Present and valid ✓
+   - NOTICE: Correct attribution ✓
+   - DISCLAIMER: Present ✓
+   - Naming: Contains "incubating" ✓
+
+
+=====================================================
+POSITIVE FINDINGS
+=====================================================
+
+✅ KEYS File Location: Correctly points to release tree
+   https://downloads.apache.org/incubator/hugegraph/KEYS
+
+✅ Incubator Naming: All artifacts contain "incubating"
+
+✅ Copyright Year: All NOTICE files include current year (2025)
+
+✅ License Headers: Main project has complete Apache license headers (1,901 files)
+
+
+=====================================================
+RECOMMENDATIONS
+=====================================================
+
+1. IMMEDIATE: Cancel or postpone current vote
+
+2. RESTRUCTURE: Create separate release processes:
+   - Split into 4 independent repository releases
+   - Each with its own RC directory (e.g., 1.7.0-rc1)
+   - Each with separate vote thread
+
+3. RELEASE STAGING: Fix RC designation:
+   - Move artifacts from /1.7.0/ to /1.7.0-rc1/
+   - Update vote thread with correct RC URL
+   - Clearly identify this as RC1
+
+4. VOTE PROCESS: Initiate proper voting:
+   - Send separate [VOTE] emails for each repository
+   - Each vote references only ONE source tarball
+   - Follow standard Apache release vote template
+
+5. FUTURE RELEASES: Establish proper process:
+   - Each repository has independent release cycle
+   - Always use RC designation in staging URLs
+   - Consider staggered releases if dependencies exist
+
+
+=====================================================
+VOTE RECOMMENDATION
+=====================================================
+
+-1 (binding/non-binding as appropriate)
+
+This release cannot be approved due to THREE CRITICAL ISSUES:
+
+1. Missing RC designation in release URL
+   - URL is /1.7.0/ instead of /1.7.0-rc1/
+   - Violates Apache staging conventions
+
+2. Multiple repositories bundled in single vote
+   - 4 source tarballs in one release
+   - Violates Apache release independence policy
+
+3. Built artifacts missing 'incubating' in filenames
+   - 50 out of 51 artifacts incorrectly named (98% non-compliant)
+   - Violations across multiple languages:
+     • Maven/Java: 48 out of 49 JAR files
+     • Python: 2 out of 2 artifacts (wheel + source distribution)
+   - Violates Apache Incubator naming requirements
+   - Examples:
+     • hugegraph-core-1.7.0.jar → should be hugegraph-core-1.7.0-incubating.jar
+     • hugegraph_ai-1.7.0-py3-none-any.whl → should be hugegraph_ai-1.7.0.incubating-py3-none-any.whl
+
+All three issues are fundamental Apache policy violations that MUST be
+corrected before a valid vote can proceed. The release requires complete
+restructuring and rebuilding.
+
+=====================================================

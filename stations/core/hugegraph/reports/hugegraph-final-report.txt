@@ -1,0 +1,120 @@
+
+============================================================
+Apache HugeGraph 1.7.0 - Complete Validation Report
+============================================================
+Date: 2025-11-21
+Validator: Apache Compliance Automation (assembly-bom)
+
+OVERALL RESULT: ❌ FAILED - 3 Critical Blocking Issues
+
+Three fundamental Apache policy violations prevent approval:
+  1. Missing RC designation in release URL
+  2. Multiple repositories bundled in single vote
+  3. Built artifacts missing 'incubating' in filenames (98.3% non-compliant)
+
+============================================================
+BUILDS COMPLETED
+============================================================
+
+✅ Maven/Java builds (Java 11 required):
+   - apache-hugegraph-incubating: 39 JARs produced
+   - apache-hugegraph-toolchain: 10 JARs produced
+   - apache-hugegraph-computer/computer: 9 JARs produced
+
+✅ Python build (Python 3.9):
+   - apache-hugegraph-ai: 1 wheel + 1 source distribution
+
+✅ Go build (Go 1.25.2):
+   - apache-hugegraph-computer/vermeer: 1 binary produced (62MB)
+   - Note: Required dependency update for Go 1.25 compatibility
+
+============================================================
+ARTIFACT NAMING VALIDATION (ISSUE #3)
+============================================================
+
+Total: 60 artifacts checked across 4 projects
+  • 58 JAR files (Maven - 3 projects)
+  • 1 Python wheel
+  • 1 Python source distribution
+
+Results:
+  ✅ Compliant: 1 (1.7%)
+  ❌ Non-compliant: 59 (98.3%)
+
+The ONLY compliant artifact:
+  ✓ apache-hugegraph-loader-incubating-1.7.0-shaded.jar
+
+Critical violations found:
+  • Maven/Java: 57/58 JARs missing 'incubating'
+    - apache-hugegraph-incubating: 38/39 violations
+    - apache-hugegraph-toolchain: 10/10 violations
+    - apache-hugegraph-computer/computer: 9/9 violations
+  • Python: 2/2 artifacts missing 'incubating'
+
+============================================================
+VALIDATION FRAMEWORK ENHANCEMENTS DELIVERED
+============================================================
+
+1. ✅ Created hugegraph/build.sh
+   - Java 11 support for Maven builds
+   - Multi-project build support
+
+2. ✅ Created hugegraph/build-python.sh  
+   - Python project build support
+   - Automatic wheel/sdist generation
+
+3. ✅ Enhanced apache-validate-build-artifacts.sh
+   - Multi-directory support
+   - Python artifact validation (wheels + source dists)
+   - Multi-language support (Java + Python)
+   - Build system auto-detection
+
+4. ✅ Created apache-validate-release-structure.sh
+   - RC designation validation
+   - Multi-tarball detection
+   - Blocks pipeline on policy violations
+
+5. ✅ Enhanced apache-rat.sh
+   - Multi-directory RAT analysis
+   - Build system detection
+   - Aggregated statistics
+
+6. ✅ Enhanced apache-validate-compliance.sh
+   - Multi-directory validation
+   - Reporting mode (exit 0)
+
+============================================================
+VALIDATION RESULTS SUMMARY
+============================================================
+
+✅ Cryptographic integrity: PASS
+   - All GPG signatures valid
+   - All SHA512 checksums valid
+
+✅ Individual source compliance: PASS
+   - All 4 directories have valid LICENSE/NOTICE/DISCLAIMER
+   - All contain 'incubating' in tarball names
+   - KEYS URL points to correct location
+   - 1,901 files checked with Apache RAT - all valid
+
+❌ Release structure: FAIL
+   - Missing RC designation in URL
+   - Multiple source tarballs (4 instead of 1)
+
+❌ Build artifact naming: FAIL
+   - 59 out of 60 artifacts incorrectly named (98.3% non-compliant)
+
+============================================================
+VOTE RECOMMENDATION: -1
+============================================================
+
+This release cannot proceed due to fundamental policy violations
+that require restructuring and complete rebuilds.
+
+See detailed reports:
+  - /tmp/hugegraph-compliance-summary.txt
+  - /tmp/hugegraph-build-summary.txt  
+  - /tmp/hugegraph-validation-summary.txt
+
+============================================================
+

@@ -1,8 +1,26 @@
 products:
   apache-releases:
     components:
-      # Apache GeaFlow - Incubator project
       core:
+        # Apache HugeGraph - Incubator project
+        - name: hugegraph
+          env:
+            RELEASE_VERSION: "1.7.0"
+            RELEASE_CANDIDATE: ""
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0"
+            KEYS_URL: "https://downloads.apache.org/incubator/hugegraph/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-release-structure
+            - apache-validate-compliance
+            - apache-rat
+            - build          # Builds Maven (Java) and Go projects
+            - build-python   # Builds Python projects
+            - apache-validate-build-artifacts
+            - test
+
+        # Apache Fluss - Incubator project
         - name: fluss
           env:
             RELEASE_VERSION: "0.8.0"
@@ -25,6 +43,7 @@ products:
             - apache-validate-build-artifacts
             - test
 
+        # Apache GeaFlow - Incubator project
         - name: geaflow
           env:
             RELEASE_VERSION: "0.7.0"

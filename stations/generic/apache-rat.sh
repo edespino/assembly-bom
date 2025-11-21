@@ -16,19 +16,21 @@ echo "[apache-rat] Component: $COMPONENT_NAME"
 echo "[apache-rat] Directory: $COMPONENT_DIR"
 echo ""
 
-# Find the extracted source directory (exclude the component directory itself)
-EXTRACTED_DIR=$(find "$COMPONENT_DIR" -maxdepth 1 -type d -not -path "$COMPONENT_DIR" | head -1)
-if [[ -z "$EXTRACTED_DIR" ]]; then
-  echo "[apache-rat] ❌ No extracted source directory found"
+# Find all extracted source directories (ending in -src)
+# For projects with multiple repositories, we'll have multiple source tarballs
+mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -maxdepth 1 -type d -name "*-src" | sort)
+
+if [[ ${#SOURCE_DIRS[@]} -eq 0 ]]; then
+  echo "[apache-rat] ❌ No extracted source directories found"
   echo "[apache-rat] Please run extract step first"
   exit 1
 fi
 
-echo "[apache-rat] Source: $EXTRACTED_DIR"
+echo "[apache-rat] Found ${#SOURCE_DIRS[@]} source director(ies):"
+for dir in "${SOURCE_DIRS[@]}"; do
+  echo "[apache-rat]   - ${dir#$COMPONENT_DIR/}"
+done
 echo ""
-
-# Change to extracted directory
-cd "$EXTRACTED_DIR"
 
 # Check if Maven is available
 if ! command -v mvn &> /dev/null; then
@@ -43,83 +45,140 @@ fi
 RAT_MAVEN_COMMAND="${RAT_MAVEN_COMMAND:-apache-rat:check}"
 
 echo "[apache-rat] ========================================="
-echo "[apache-rat] Step 1: Running Apache RAT"
+echo "[apache-rat] Step 1: Running Apache RAT on All Sources"
 echo "[apache-rat] ========================================="
 echo "[apache-rat] Command: mvn $RAT_MAVEN_COMMAND"
 echo ""
 
-# Clean old rat.txt files to avoid stale data
-# This is important when switching between different RAT invocation methods
-echo "[apache-rat] Cleaning old RAT reports..."
-find . -name "rat.txt" -path "*/target/rat.txt" -delete 2>/dev/null || true
-echo ""
+# Process each source directory
+for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
+  echo "[apache-rat] ----------------------------------------"
+  echo "[apache-rat] Processing: ${EXTRACTED_DIR#$COMPONENT_DIR/}"
+  echo "[apache-rat] ----------------------------------------"
 
-# Run Apache RAT (allow it to fail - we'll check the report)
-# Note: We don't quote $RAT_MAVEN_COMMAND to allow word splitting
-# Temporarily restore default IFS to enable space-based word splitting
-set +e
-(
-  IFS=$' \t\n'
-  # shellcheck disable=SC2086
-  mvn $RAT_MAVEN_COMMAND 2>&1 | tee /tmp/rat-maven-output.log
-)
-RAT_EXIT_CODE=$?
-set -e
+  # Check if this is a Maven project (has pom.xml)
+  if [[ ! -f "$EXTRACTED_DIR/pom.xml" ]]; then
+    echo "[apache-rat] ⚠ No pom.xml found - not a Maven project"
 
-echo ""
-echo "[apache-rat] Maven exit code: $RAT_EXIT_CODE"
+    # Detect build system for informational purposes
+    if [[ -f "$EXTRACTED_DIR/pyproject.toml" ]]; then
+      echo "[apache-rat] ℹ Detected Python project (pyproject.toml)"
+    elif [[ -f "$EXTRACTED_DIR/build.gradle" ]] || [[ -f "$EXTRACTED_DIR/build.gradle.kts" ]]; then
+      echo "[apache-rat] ℹ Detected Gradle project"
+    elif [[ -f "$EXTRACTED_DIR/package.json" ]]; then
+      echo "[apache-rat] ℹ Detected Node.js project"
+    elif [[ -f "$EXTRACTED_DIR/go.mod" ]]; then
+      echo "[apache-rat] ℹ Detected Go project"
+    elif [[ -f "$EXTRACTED_DIR/Cargo.toml" ]]; then
+      echo "[apache-rat] ℹ Detected Rust project"
+    else
+      echo "[apache-rat] ℹ Unknown build system"
+    fi
 
-# Check if rat.txt was generated
-if [[ ! -f "target/rat.txt" ]]; then
-  echo "[apache-rat] ❌ RAT report not found at target/rat.txt"
-  echo "[apache-rat] Maven may have failed to run RAT plugin"
-  exit 1
-fi
+    echo "[apache-rat] ⏭ Skipping - Apache RAT via Maven requires pom.xml"
+    echo ""
+    continue
+  fi
+
+  echo "[apache-rat] ✓ Found pom.xml - running Maven Apache RAT"
+
+  # Change to extracted directory
+  cd "$EXTRACTED_DIR"
+
+  # Clean old rat.txt files to avoid stale data
+  echo "[apache-rat] Cleaning old RAT reports..."
+  find . -name "rat.txt" -path "*/target/rat.txt" -delete 2>/dev/null || true
+
+  # Run Apache RAT (allow it to fail - we'll check the report)
+  # Note: We don't quote $RAT_MAVEN_COMMAND to allow word splitting
+  set +e
+  (
+    IFS=$' \t\n'
+    # shellcheck disable=SC2086
+    mvn $RAT_MAVEN_COMMAND 2>&1 | tee "/tmp/rat-maven-output-$(basename "$EXTRACTED_DIR").log"
+  )
+  RAT_EXIT_CODE=$?
+  set -e
+
+  echo ""
+  echo "[apache-rat] Maven exit code: $RAT_EXIT_CODE"
+
+  # Check if rat.txt was generated
+  if [[ ! -f "target/rat.txt" ]]; then
+    echo "[apache-rat] ⚠ RAT report not found at target/rat.txt for $(basename "$EXTRACTED_DIR")"
+    echo "[apache-rat] Skipping this directory"
+    echo ""
+    continue
+  fi
+
+  echo "[apache-rat] ✓ RAT report generated: $EXTRACTED_DIR/target/rat.txt"
+  echo ""
+done
 
 echo ""
 echo "[apache-rat] ========================================="
-echo "[apache-rat] Step 2: Analyzing RAT Report"
+echo "[apache-rat] Step 2: Analyzing All RAT Reports"
 echo "[apache-rat] ========================================="
-echo "[apache-rat] Report: $EXTRACTED_DIR/target/rat.txt"
 echo ""
 
-# Parse the RAT report and Maven output
-RAT_REPORT="target/rat.txt"
-MAVEN_OUTPUT="/tmp/rat-maven-output.log"
+# Aggregate statistics from all source directories
+TOTAL_UNAPPROVED=0
+TOTAL_UNKNOWN=0
+TOTAL_GENERATED=0
+TOTAL_APACHE_LICENSED=0
+TOTAL_FILES=0
+TOTAL_BINARIES=0
+TOTAL_ARCHIVES=0
+TOTAL_STANDARDS=0
+TOTAL_JAVADOCS=0
 
-# Extract summary from Maven output (more reliable than rat.txt)
-# Format: "[INFO] Rat check: Summary over all files. Unapproved: 194, unknown: 194, generated: 0, approved: 85 licenses."
-# In multi-module builds, there will be one summary line per module - we need to sum them up
+# Process each source directory's RAT output
+for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
+  MAVEN_OUTPUT="/tmp/rat-maven-output-$(basename "$EXTRACTED_DIR").log"
 
-RAT_SUMMARIES=$(grep "Rat check: Summary" "$MAVEN_OUTPUT" || echo "")
+  if [[ ! -f "$MAVEN_OUTPUT" ]]; then
+    echo "[apache-rat] ⚠ Skipping $(basename "$EXTRACTED_DIR") - no Maven output found"
+    continue
+  fi
 
-if [[ -n "$RAT_SUMMARIES" ]]; then
-  # Sum up all values across all modules
-  UNAPPROVED=0
-  UNKNOWN=0
-  GENERATED=0
-  APACHE_LICENSED=0
+  echo "[apache-rat] Analyzing: $(basename "$EXTRACTED_DIR")"
 
-  while IFS= read -r line; do
-    UNAPPROVED=$((UNAPPROVED + $(echo "$line" | sed -n 's/.*Unapproved: \([0-9]*\).*/\1/p')))
-    UNKNOWN=$((UNKNOWN + $(echo "$line" | sed -n 's/.*unknown: \([0-9]*\).*/\1/p')))
-    GENERATED=$((GENERATED + $(echo "$line" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')))
-    APACHE_LICENSED=$((APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
-  done <<< "$RAT_SUMMARIES"
-else
-  # Fallback to parsing rat.txt (single module case)
-  APACHE_LICENSED=$(grep -E "^Apache Licensed: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
-  GENERATED=$(grep -E "^Generated Documents: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
-  UNKNOWN=$(grep -E "^Unknown Licenses: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
-  UNAPPROVED="$UNKNOWN"
-fi
+  # Extract summary from Maven output
+  RAT_SUMMARIES=$(grep "Rat check: Summary" "$MAVEN_OUTPUT" || echo "")
 
-# Extract file statistics from rat.txt (top-level summary)
-TOTAL_FILES=$(grep -E "^Notes: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
-BINARIES=$(grep -E "^Binaries: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
-ARCHIVES=$(grep -E "^Archives: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
-STANDARDS=$(grep -E "^Standards: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")
-JAVADOCS=$(grep -E "^JavaDoc Style: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")
+  if [[ -n "$RAT_SUMMARIES" ]]; then
+    # Sum up all values across all modules within this source directory
+    while IFS= read -r line; do
+      TOTAL_UNAPPROVED=$((TOTAL_UNAPPROVED + $(echo "$line" | sed -n 's/.*Unapproved: \([0-9]*\).*/\1/p')))
+      TOTAL_UNKNOWN=$((TOTAL_UNKNOWN + $(echo "$line" | sed -n 's/.*unknown: \([0-9]*\).*/\1/p')))
+      TOTAL_GENERATED=$((TOTAL_GENERATED + $(echo "$line" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')))
+      TOTAL_APACHE_LICENSED=$((TOTAL_APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
+    done <<< "$RAT_SUMMARIES"
+  fi
+
+  # Extract file statistics from rat.txt
+  RAT_REPORT="$EXTRACTED_DIR/target/rat.txt"
+  if [[ -f "$RAT_REPORT" ]]; then
+    TOTAL_FILES=$((TOTAL_FILES + $(grep -E "^Notes: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
+    TOTAL_BINARIES=$((TOTAL_BINARIES + $(grep -E "^Binaries: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
+    TOTAL_ARCHIVES=$((TOTAL_ARCHIVES + $(grep -E "^Archives: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
+    TOTAL_STANDARDS=$((TOTAL_STANDARDS + $(grep -E "^Standards: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
+    TOTAL_JAVADOCS=$((TOTAL_JAVADOCS + $(grep -E "^JavaDoc Style: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")))
+  fi
+done
+
+# Use aggregated totals for reporting
+UNAPPROVED=$TOTAL_UNAPPROVED
+UNKNOWN=$TOTAL_UNKNOWN
+GENERATED=$TOTAL_GENERATED
+APACHE_LICENSED=$TOTAL_APACHE_LICENSED
+TOTAL_FILES=$TOTAL_FILES
+BINARIES=$TOTAL_BINARIES
+ARCHIVES=$TOTAL_ARCHIVES
+STANDARDS=$TOTAL_STANDARDS
+JAVADOCS=$TOTAL_JAVADOCS
+
+echo ""
 
 echo "[apache-rat] Summary Statistics:"
 echo "[apache-rat] ----------------------------------------"
@@ -155,20 +214,26 @@ echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 3: Files with Unknown Licenses"
 echo "[apache-rat] ========================================="
 
-# Find all rat.txt files in module directories
-ALL_RAT_FILES=$(find "$EXTRACTED_DIR" -name "rat.txt" -path "*/target/rat.txt" 2>/dev/null || true)
-
-# Collect unknown files from all modules
+# Collect unknown files from all source directories
 UNKNOWN_FILES=""
-if [[ -n "$ALL_RAT_FILES" ]]; then
-  while IFS= read -r rat_file; do
-    # Files with unknown licenses are marked with '!?????' in RAT report
-    MODULE_UNKNOWN=$(grep -E '^\s+!\?\?\?\?\?' "$rat_file" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
-    if [[ -n "$MODULE_UNKNOWN" ]]; then
-      UNKNOWN_FILES="${UNKNOWN_FILES}${MODULE_UNKNOWN}"$'\n'
-    fi
-  done <<< "$ALL_RAT_FILES"
-fi
+for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
+  # Find all rat.txt files in this source directory's modules
+  ALL_RAT_FILES=$(find "$EXTRACTED_DIR" -name "rat.txt" -path "*/target/rat.txt" 2>/dev/null || true)
+
+  if [[ -n "$ALL_RAT_FILES" ]]; then
+    while IFS= read -r rat_file; do
+      # Files with unknown licenses are marked with '!?????' in RAT report
+      MODULE_UNKNOWN=$(grep -E '^\s+!\?\?\?\?\?' "$rat_file" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
+      if [[ -n "$MODULE_UNKNOWN" ]]; then
+        # Prefix with source directory name for clarity
+        SOURCE_NAME=$(basename "$EXTRACTED_DIR")
+        while IFS= read -r file_path; do
+          UNKNOWN_FILES="${UNKNOWN_FILES}[$SOURCE_NAME] $file_path"$'\n'
+        done <<< "$MODULE_UNKNOWN"
+      fi
+    done <<< "$ALL_RAT_FILES"
+  fi
+done
 
 # Remove trailing newline
 UNKNOWN_FILES=$(echo -n "$UNKNOWN_FILES" | sed '/^$/d')
@@ -180,8 +245,8 @@ if [[ -n "$UNKNOWN_FILES" ]]; then
     echo "[apache-rat]   - $file"
   done
 
-  # Save to file for easy review
-  UNKNOWN_LIST="$EXTRACTED_DIR/target/rat-unknown-licenses.txt"
+  # Save to file for easy review in component directory
+  UNKNOWN_LIST="$COMPONENT_DIR/rat-unknown-licenses.txt"
   echo "$UNKNOWN_FILES" > "$UNKNOWN_LIST"
   echo "[apache-rat]"
   echo "[apache-rat] Full list saved to: $UNKNOWN_LIST"
@@ -231,22 +296,33 @@ echo "[apache-rat] ========================================="
 echo "[apache-rat] Summary Report"
 echo "[apache-rat] ========================================="
 
-SUMMARY_FILE="$EXTRACTED_DIR/target/rat-summary.txt"
+SUMMARY_FILE="$COMPONENT_DIR/rat-summary.txt"
 cat > "$SUMMARY_FILE" << EOF
 Apache RAT (Release Audit Tool) Summary
 ========================================
 Component: $COMPONENT_NAME
+Source Directories Analyzed: ${#SOURCE_DIRS[@]}
 Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
-File Statistics:
-----------------
+Source Directories:
+-------------------
+EOF
+
+for dir in "${SOURCE_DIRS[@]}"; do
+  echo "  - $(basename "$dir")" >> "$SUMMARY_FILE"
+done
+
+cat >> "$SUMMARY_FILE" << EOF
+
+File Statistics (Aggregated):
+------------------------------
 Total notes: $TOTAL_FILES
 Binaries: $BINARIES
 Archives: $ARCHIVES
 Standards: $STANDARDS
 
-License Status:
----------------
+License Status (Aggregated):
+-----------------------------
 Apache Licensed (approved): $APACHE_LICENSED
 Generated Documents: $GENERATED
 JavaDoc Style: $JAVADOCS
@@ -266,14 +342,20 @@ if [[ $NEEDS_ATTENTION -eq 0 ]]; then
 else
   echo "⚠ ATTENTION NEEDED - $NEEDS_ATTENTION file(s) missing license headers" >> "$SUMMARY_FILE"
   echo ""
-  echo "Files missing headers saved to: target/rat-unknown-licenses.txt" >> "$SUMMARY_FILE"
+  echo "Files missing headers saved to: rat-unknown-licenses.txt" >> "$SUMMARY_FILE"
   echo ""
   echo "[apache-rat] ⚠ ATTENTION NEEDED - $NEEDS_ATTENTION file(s) missing license headers"
   VALIDATION_PASSED=false
 fi
 
 echo "[apache-rat]"
-echo "[apache-rat] Full RAT report: $EXTRACTED_DIR/target/rat.txt"
+echo "[apache-rat] Individual RAT reports:"
+for dir in "${SOURCE_DIRS[@]}"; do
+  if [[ -f "$dir/target/rat.txt" ]]; then
+    echo "[apache-rat]   - $(basename "$dir"): $dir/target/rat.txt"
+  fi
+done
+echo "[apache-rat]"
 echo "[apache-rat] Summary report: $SUMMARY_FILE"
 
 if [[ -n "$UNKNOWN_FILES" ]]; then

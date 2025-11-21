@@ -1,0 +1,137 @@
+Apache HugeGraph 1.7.0 - Build and Validation Summary
+=====================================================
+Date: 2025-11-21
+Validation Framework: assembly-bom
+
+BUILD RESULTS
+====================================================
+
+Maven Projects Built (Java 11):
+--------------------------------
+✅ apache-hugegraph-incubating-1.7.0-src
+   - Build: SUCCESS
+   - JARs produced: 39
+   - Build time: ~10 minutes
+
+✅ apache-hugegraph-toolchain-incubating-1.7.0-src
+   - Build: SUCCESS
+   - JARs produced: 10
+   - Build time: ~30 seconds
+
+✅ apache-hugegraph-computer-incubating-1.7.0-src/computer
+   - Build: SUCCESS
+   - JARs produced: 9
+   - Build time: ~37 seconds
+
+Python Projects Built (Python 3.9):
+------------------------------------
+✅ apache-hugegraph-ai-incubating-1.7.0-src
+   - Build: SUCCESS
+   - Wheels produced: 1
+   - Source distributions: 1
+   - Build time: ~7 seconds
+
+Go Projects Built (Go 1.25.2):
+-------------------------------
+✅ apache-hugegraph-computer-incubating-1.7.0-src/vermeer
+   - Build: SUCCESS
+   - Binary produced: vermeer (62MB ELF executable)
+   - Build time: ~3 seconds
+   - Note: Required dependency update (sonic 1.13.2 → 1.14.2 for Go 1.25 compatibility)
+
+====================================================
+ARTIFACT NAMING VALIDATION RESULTS
+====================================================
+
+Total artifacts checked: 60
+  - JAR files: 58 (from 3 Maven projects)
+  - Python wheels: 1
+  - Python source distributions: 1
+
+Compliant artifacts: 1 (1.7%)
+  ✅ apache-hugegraph-loader-incubating-1.7.0-shaded.jar
+
+Non-compliant artifacts: 59 (98.3%)
+
+Maven/JAR violations: 57 out of 58
+  From apache-hugegraph-incubating:
+    ❌ hugegraph-core-1.7.0.jar
+    ❌ hg-pd-client-1.7.0.jar
+    ... (37 more)
+
+  From apache-hugegraph-toolchain:
+    ❌ hugegraph-loader-1.7.0.jar
+    ❌ hugegraph-hubble-1.7.0.jar
+    ... (8 more)
+
+  From apache-hugegraph-computer/computer:
+    ❌ computer-algorithm-1.7.0.jar
+    ❌ computer-api-1.7.0.jar
+    ❌ computer-core-1.7.0.jar
+    ❌ computer-dist-1.7.0.jar
+    ❌ computer-driver-1.7.0.jar
+    ❌ computer-k8s-1.7.0.jar
+    ❌ computer-test-1.7.0.jar
+    ❌ computer-yarn-1.7.0.jar
+    ❌ hugegraph-computer-operator-1.7.0.jar
+
+Python violations: 2 out of 2
+  ❌ hugegraph_ai-1.7.0-py3-none-any.whl
+  ❌ hugegraph_ai-1.7.0.tar.gz
+
+Go Binaries (not validated):
+  ℹ️  vermeer (Go binaries are not subject to filename validation)
+
+====================================================
+ROOT CAUSE ANALYSIS
+====================================================
+
+Maven Projects:
+- POM files use version "1.7.0" instead of "1.7.0-incubating"
+- Version not consistently inherited across all modules
+- Only one shaded JAR has correct naming
+
+Python Project:
+- pyproject.toml uses version "1.7.0" instead of "1.7.0.incubating"
+- Produces artifacts with incorrect naming
+
+====================================================
+REQUIRED FIXES
+====================================================
+
+For Maven Projects:
+1. Update root pom.xml:
+   <version>1.7.0-incubating</version>
+
+2. Ensure all child modules inherit:
+   <parent>
+     <version>1.7.0-incubating</version>
+   </parent>
+
+3. Rebuild:
+   mvn clean install -DskipTests
+
+For Python Project:
+1. Update pyproject.toml:
+   [project]
+   version = "1.7.0.incubating"
+
+2. Rebuild:
+   python3 -m build
+
+====================================================
+APACHE INCUBATOR POLICY
+====================================================
+
+All release artifacts MUST include "incubating" in filenames.
+
+This applies to:
+  • JAR files (Maven)
+  • Python wheel files (.whl)
+  • Python source distributions (.tar.gz)
+  • Any other binary distributions
+
+Reference:
+https://incubator.apache.org/policy/incubation.html
+
+====================================================

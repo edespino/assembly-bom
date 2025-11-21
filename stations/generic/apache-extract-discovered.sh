@@ -71,16 +71,22 @@ extract_artifact() {
     return 1
   fi
 
-  # Check if already extracted by looking for directories that might match
-  # Extract the base name without extension for matching
-  local base_name="${tarball%.tar.*}"
-  base_name="${base_name%.tgz}"
-  base_name="${base_name%.zip}"
+  # Check if already extracted
+  # Determine expected extracted directory name by peeking into the tarball
+  local expected_dir=""
+  case "$archive_format" in
+    "tar.gz"|"tar.bz2"|"tar.xz")
+      # Get first directory entry, handling paths that start with ./
+      expected_dir=$(tar -tf "$ARTIFACT_PATH/$tarball" | head -1 | sed 's|^\./||' | cut -d'/' -f1)
+      ;;
+    "zip")
+      expected_dir=$(unzip -l "$ARTIFACT_PATH/$tarball" | awk 'NR==4 {print $4}' | sed 's|^\./||' | cut -d'/' -f1)
+      ;;
+  esac
 
-  if [[ -n "$(find . -maxdepth 1 -type d -name "${base_name}*" 2>/dev/null | head -1)" ]]; then
+  if [[ -n "$expected_dir" ]] && [[ "$expected_dir" != "." ]] && [[ -d "$expected_dir" ]]; then
     echo "[extract-discovered] ⚠ Artifact appears to be already extracted"
-    local existing=$(find . -maxdepth 1 -type d -name "${base_name}*" | head -1)
-    echo "[extract-discovered] Existing: ${existing#./}"
+    echo "[extract-discovered] Existing: $expected_dir"
     echo "[extract-discovered] Skipping extraction (use --force to re-extract)"
     return 0
   fi
