@@ -9,7 +9,7 @@ Summary
 
 [PASS] Cryptographic signatures (GPG + SHA-512): VERIFIED
 [PASS] Source compliance (LICENSE, NOTICE, DISCLAIMER): PASSED
-[PASS] License headers (Apache RAT): PASSED (1,901 files, 0 unknown)
+[PARTIAL] License headers (Apache RAT): PASSED for main repo only (1,901 files, 0 unknown)
 [FAIL] RC designation in release URL: MISSING
 [FAIL] Release structure (single repository per vote): VIOLATION (4 repos bundled)
 [FAIL] JAR naming compliance (incubating): FAILED (59/60 artifacts non-compliant, 98.3%)
@@ -54,10 +54,11 @@ Environment:
 
 [PASS] License Header Validation (Apache RAT)
     - apache-hugegraph-incubating: 1,901 files scanned, 0 unknown
-    - apache-hugegraph-ai: Validated
-    - apache-hugegraph-computer: Validated
-    - apache-hugegraph-toolchain: Validated
-    - Result: PASSED
+    - Other repositories (ai, computer, toolchain): NOT FULLY VALIDATED
+
+    Note: Only the main hugegraph repository received full RAT analysis.
+    The other three repositories require separate RAT scans for complete
+    validation.
 
 [FAIL] RC Designation in Release URL
     Current URL:
@@ -182,14 +183,11 @@ typical release process, so I'm focusing on identifying policy violations
 rather than prescribing specific solutions. The PPMC and release manager
 will be better positioned to determine the appropriate corrective approach.
 
-Positive observations:
-- Source code quality appears solid
-- All cryptographic verification passes
-- License and compliance files are properly maintained
-- License headers verified across 1,901+ files
-- All builds complete successfully
-
-The issues are process-level violations, not code quality concerns.
+What was verified:
+- All cryptographic verification passes (GPG signatures and SHA-512 checksums)
+- LICENSE, NOTICE, and DISCLAIMER files present in all 4 source tarballs
+- License headers validated for apache-hugegraph-incubating only (1,901 files)
+- All 4 repositories build successfully (Java, Python, Go)
 
 Detailed analysis available at:
 /home/cbadmin/assembly-bom/stations/core/hugegraph/reports/
@@ -198,9 +196,8 @@ Detailed analysis available at:
 Conclusion
 =====================================
 
-While the source quality and licensing are solid, there are four fundamental
-Apache policy violations that must be corrected before this release can be
-approved:
+There are four fundamental Apache policy violations that must be corrected
+before this release can be approved:
 
 1. Missing RC designation in release URL
 2. Multiple repositories bundled in single vote (requires separate votes)
