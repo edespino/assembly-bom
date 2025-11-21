@@ -1,0 +1,213 @@
+-1 (binding)
+
+I cannot recommend releasing this package due to four critical Apache
+policy violations that must be corrected before approval.
+
+=====================================
+Summary
+=====================================
+
+[PASS] Cryptographic signatures (GPG + SHA-512): VERIFIED
+[PASS] Source compliance (LICENSE, NOTICE, DISCLAIMER): PASSED
+[PASS] License headers (Apache RAT): PASSED (1,901 files, 0 unknown)
+[FAIL] RC designation in release URL: MISSING
+[FAIL] Release structure (single repository per vote): VIOLATION (4 repos bundled)
+[FAIL] JAR naming compliance (incubating): FAILED (59/60 artifacts non-compliant, 98.3%)
+[FAIL] Release process (premature tagging): VIOLATION
+
+Release Candidate:
+https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0
+
+KEYS:
+https://downloads.apache.org/incubator/hugegraph/KEYS
+
+Artifacts (4 repositories bundled):
+- apache-hugegraph-incubating-1.7.0-src.tar.gz (2.2M)
+- apache-hugegraph-incubating-1.7.0.tar.gz (892M, binary)
+- apache-hugegraph-ai-incubating-1.7.0-src.tar.gz (208K)
+- apache-hugegraph-computer-incubating-1.7.0-src.tar.gz (810K)
+- apache-hugegraph-toolchain-incubating-1.7.0-src.tar.gz (1.4M)
+- apache-hugegraph-toolchain-incubating-1.7.0.tar.gz (580M, binary)
+
+=====================================
+Detailed Verification Report
+=====================================
+
+Environment:
+- Java: OpenJDK 11.0.25 (Red Hat 11.0.25+9-LTS)
+- Python: 3.9.21
+- Go: 1.25.2
+- Maven: 3.x
+- OS: Rocky Linux 9.6 (Blue Onyx)
+- Kernel: 5.14.0-570.17.1.el9_6.x86_64
+
+[PASS] Cryptographic Verification
+    - GPG signature verification: PASSED (all 6 artifacts)
+    - SHA-512 checksum verification: PASSED (all 6 artifacts)
+
+[PASS] Source Compliance
+    - LICENSE files: VALID (Apache License 2.0, all 4 sources)
+    - NOTICE files: VALID (correct attribution, 2025 copyright, all 4 sources)
+    - DISCLAIMER files: VALID (incubation status, all 4 sources)
+    - Tarball naming: CORRECT (all contain "incubating")
+    - KEYS URL: CORRECT (downloads.apache.org, not dist/dev)
+
+[PASS] License Header Validation (Apache RAT)
+    - apache-hugegraph-incubating: 1,901 files scanned, 0 unknown
+    - apache-hugegraph-ai: Validated
+    - apache-hugegraph-computer: Validated
+    - apache-hugegraph-toolchain: Validated
+    - Result: PASSED
+
+[FAIL] RC Designation in Release URL
+    Current URL:
+      https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0
+
+    Expected URL:
+      https://dist.apache.org/repos/dist/dev/incubator/hugegraph/1.7.0-rc1
+
+    Problem:
+    - No RC designation (rc1, rc2, etc.) in URL or artifact names
+    - Apache releases require numbered release candidates for voting
+    - Prevents proper iteration if issues are found
+
+    Policy: https://www.apache.org/legal/release-policy.html
+
+[FAIL] Release Structure (Repository Independence)
+    Found 4 source tarballs from 4 separate Git repositories:
+
+    1. apache-hugegraph-incubating-1.7.0-src.tar.gz
+       Repository: apache/incubator-hugegraph (core/server)
+
+    2. apache-hugegraph-ai-incubating-1.7.0-src.tar.gz
+       Repository: apache/incubator-hugegraph-ai (AI components)
+
+    3. apache-hugegraph-computer-incubating-1.7.0-src.tar.gz
+       Repository: apache/incubator-hugegraph-computer (compute engine)
+
+    4. apache-hugegraph-toolchain-incubating-1.7.0-src.tar.gz
+       Repository: apache/incubator-hugegraph-toolchain (tools/utilities)
+
+    Problem:
+    - Apache policy requires separate release votes per repository
+    - Each repository represents distinct codebase with independent history
+    - Bundling prevents independent verification and release cycles
+
+    Policy: https://www.apache.org/legal/release-policy.html
+    ("What Must Every ASF Release Contain")
+
+[PASS] Source Builds
+    Maven/Java builds (Java 11):
+    - apache-hugegraph-incubating: SUCCESS (39 JARs produced)
+    - apache-hugegraph-toolchain: SUCCESS (10 JARs produced)
+    - apache-hugegraph-computer/computer: SUCCESS (9 JARs produced)
+
+    Python build (Python 3.9):
+    - apache-hugegraph-ai: SUCCESS (1 wheel + 1 sdist)
+
+    Go build (Go 1.25.2):
+    - apache-hugegraph-computer/vermeer: SUCCESS (1 binary, 62MB)
+
+[FAIL] JAR Naming Compliance (Incubator Branding)
+    Total artifacts checked: 60
+    - JAR files: 58 (Maven builds)
+    - Python wheels: 1
+    - Python source distributions: 1
+
+    Results:
+    - Compliant: 1 (1.7%)
+    - Non-compliant: 59 (98.3%)
+
+    Maven/Java violations (57 out of 58 JARs):
+
+    apache-hugegraph-incubating (38/39 violations):
+      * hugegraph-core-1.7.0.jar (missing "incubating")
+      * hugegraph-api-1.7.0.jar (missing "incubating")
+      * hg-pd-client-1.7.0.jar (missing "incubating")
+      * hugegraph-cassandra-1.7.0.jar (missing "incubating")
+      * hugegraph-rocksdb-1.7.0.jar (missing "incubating")
+      * hugegraph-mysql-1.7.0.jar (missing "incubating")
+      ... (32 more violations)
+
+    apache-hugegraph-toolchain (10/10 violations):
+      * hugegraph-loader-1.7.0.jar (missing "incubating")
+      * hugegraph-tools-1.7.0.jar (missing "incubating")
+      * hugegraph-hubble-1.7.0.jar (missing "incubating")
+      * hugegraph-client-1.7.0.jar (missing "incubating")
+      ... (6 more violations)
+
+    apache-hugegraph-computer/computer (9/9 violations):
+      * computer-core-1.7.0.jar (missing "incubating")
+      * computer-api-1.7.0.jar (missing "incubating")
+      * computer-algorithm-1.7.0.jar (missing "incubating")
+      ... (6 more violations)
+
+    Python violations (2/2 artifacts):
+      * hugegraph_ai-1.7.0-py3-none-any.whl (missing "incubating")
+      * hugegraph_ai-1.7.0.tar.gz (missing "incubating")
+
+    Only ONE compliant artifact:
+      * apache-hugegraph-loader-incubating-1.7.0-shaded.jar
+
+    Problem:
+    - Apache Incubator policy REQUIRES all distributed artifacts to
+      include "incubating" in their names
+    - Affects JARs, Python wheels, and all built artifacts
+    - Demonstrates systematic version configuration issue across all projects
+
+    Root cause: Maven POM files and Python pyproject.toml use version
+    "1.7.0" instead of "1.7.0-incubating"
+
+    Policy: https://incubator.apache.org/policy/incubation.html
+
+[FAIL] Release Process (Premature Tagging)
+    Problem:
+    - Git release tags appear to have been created with "1.7.0" labels
+      before the vote has completed and passed
+    - Apache releases are determined by community vote, not by committers
+      applying tags
+    - Release tags should only be applied AFTER successful PPMC and IPMC votes
+
+    Impact:
+    - Violates principle that releases are determined by vote
+    - Creates confusion about official release status
+    - If vote fails, tags must be deleted and artifacts regenerated
+
+=====================================
+Notes
+=====================================
+
+This is my first vote for HugeGraph. I'm not familiar with the project's
+typical release process, so I'm focusing on identifying policy violations
+rather than prescribing specific solutions. The PPMC and release manager
+will be better positioned to determine the appropriate corrective approach.
+
+Positive observations:
+- Source code quality appears solid
+- All cryptographic verification passes
+- License and compliance files are properly maintained
+- License headers verified across 1,901+ files
+- All builds complete successfully
+
+The issues are process-level violations, not code quality concerns.
+
+Detailed analysis available at:
+/home/cbadmin/assembly-bom/stations/core/hugegraph/reports/
+
+=====================================
+Conclusion
+=====================================
+
+While the source quality and licensing are solid, there are four fundamental
+Apache policy violations that must be corrected before this release can be
+approved:
+
+1. Missing RC designation in release URL
+2. Multiple repositories bundled in single vote (requires separate votes)
+3. Built artifacts missing "incubating" suffix (98.3% non-compliant)
+4. Premature release tagging before vote completion
+
+These are not minor issues - they are fundamental process requirements that
+must be addressed.
+
+-1 (binding)
