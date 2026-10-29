@@ -421,6 +421,39 @@ else
   VALIDATION_PASSED=false
 fi
 
+echo ""
+echo "[apache-rat] Archives (tar, zip, gzip, bzip2, xz, 7z)"
+echo "[apache-rat] Identified, not failed. Test fixtures are expected."
+ARCHIVE_TOTAL=0
+declare -A ARCHIVE_EXT_COUNTS=()
+for dir in "${SOURCE_DIRS[@]}"; do
+  tree_name=$(basename "$dir")
+  while IFS= read -r rel || [[ -n "$rel" ]]; do
+    [[ -z "$rel" ]] && continue
+    ARCHIVE_TOTAL=$((ARCHIVE_TOTAL + 1))
+    base=$(basename "$rel")
+    case "$base" in
+      *.tar.gz|*.tar.bz2|*.tar.xz) ext=".${base#*.}" ;;
+      *) ext=".${base##*.}" ;;
+    esac
+    ext="${ext,,}"
+    ARCHIVE_EXT_COUNTS["$ext"]=$(( ${ARCHIVE_EXT_COUNTS[$ext]:-0} + 1 ))
+    echo "[apache-rat]   $tree_name: $rel"
+  done < <(find "$dir" -type f \
+    \( -name '*.tar' -o -name '*.tar.gz' -o -name '*.tgz' -o -name '*.tar.bz2' \
+       -o -name '*.tbz2' -o -name '*.tar.xz' -o -name '*.txz' -o -name '*.zip' \
+       -o -name '*.gz' -o -name '*.bz2' -o -name '*.xz' -o -name '*.7z' \) \
+    ! -path '*/target/*' -printf '%P\n')
+done
+echo "[apache-rat] Total archives: $ARCHIVE_TOTAL"
+if [[ ${#ARCHIVE_EXT_COUNTS[@]} -gt 0 ]]; then
+  echo "[apache-rat] Archives by extension:"
+  for ext in "${!ARCHIVE_EXT_COUNTS[@]}"; do
+    echo "[apache-rat]   ${ARCHIVE_EXT_COUNTS[$ext]}  $ext"
+  done | sort -k2 -nr
+fi
+echo "Archives identified: $ARCHIVE_TOTAL" >> "$SUMMARY_FILE"
+
 echo "[apache-rat] ========================================="
 
 # Exit based on validation result
