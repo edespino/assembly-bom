@@ -16,9 +16,8 @@ echo "[apache-rat] Component: $COMPONENT_NAME"
 echo "[apache-rat] Directory: $COMPONENT_DIR"
 echo ""
 
-# Find all extracted source directories (ending in -src)
-# For projects with multiple repositories, we'll have multiple source tarballs
-mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -maxdepth 1 -type d -name "*-src" | sort)
+# Extracted trees are top-level directories. Names are not required to end in -src.
+mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' | sort)
 
 if [[ ${#SOURCE_DIRS[@]} -eq 0 ]]; then
   echo "[apache-rat] ❌ No extracted source directories found"
