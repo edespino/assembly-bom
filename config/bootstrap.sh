@@ -2,6 +2,11 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# The rocky9 image installs yq in /usr/local/bin. A non-interactive login
+# PATH on that image does not include it, and a missing yq is reported as
+# invalid YAML.
+export PATH="/usr/local/bin:${PATH}"
+
 # List of required tools
 REQUIRED_TOOLS=(yq git)
 
