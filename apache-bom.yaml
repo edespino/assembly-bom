@@ -2,6 +2,20 @@ products:
   apache-releases:
     components:
       core:
+        # Apache Cloudberry - Incubator project, 2.2.0-rc3 vote
+        - name: cloudberry
+          env:
+            RELEASE_VERSION: "2.2.0"
+            RELEASE_CANDIDATE: "rc3"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/cloudberry/2.2.0-incubating-rc3"
+            KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-release-structure
+            - apache-validate-compliance
+            - apache-review-license-compliance
+
         # Apache HugeGraph - Incubator project
         - name: hugegraph
           env:
