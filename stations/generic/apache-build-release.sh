@@ -76,6 +76,8 @@ fi
 note "Configuring core with prefix $INSTALL_PREFIX"
 (
   cd "$CORE_DIR"
+  # The parent script sets IFS to newline and tab. Split flags on spaces.
+  IFS=' '
   # shellcheck disable=SC2086
   ./configure --prefix="$INSTALL_PREFIX" $flags
   make -j"$(nproc)"
