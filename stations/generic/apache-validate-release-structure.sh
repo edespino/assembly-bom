@@ -71,7 +71,8 @@ echo "[validate-release-structure] Step 2: Validating Source Artifacts"
 echo "[validate-release-structure] ========================================="
 
 # A single release vote may cover several source artifacts of the same project.
-# Count is not a policy failure. Each artifact is checked on its own.
+# The vote email names that set. Count is not a policy failure. Each artifact
+# is checked on its own. Do not drop an artifact the vote email names.
 ARTIFACTS_DIR="$PARTS_DIR/${COMPONENT_NAME}-artifacts"
 INCUBATOR_RELEASE=false
 if [[ "$RELEASE_URL" == *"/incubator/"* ]] || [[ "${RELEASE_VERSION:-}" == *incubating* ]]; then
