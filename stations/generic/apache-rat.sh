@@ -361,31 +361,79 @@ if [[ -n "$UNKNOWN_FILES" ]]; then
   echo "[apache-rat] Unknown licenses: $UNKNOWN_LIST"
 fi
 
+echo "[apache-rat]"
+echo "[apache-rat] ========================================="
+echo "[apache-rat] Step 3: Categorize RAT binary files"
+echo "[apache-rat] ========================================="
+echo "[apache-rat] Files marked B were scanned and classified as binary."
+echo "[apache-rat] They are not pom excludes. Images and data are expected."
+echo "[apache-rat] Compiled artifacts fail this check."
+echo ""
+
+COMPILED_BINARIES=()
+BINARY_TOTAL=0
+declare -A BINARY_EXT_COUNTS=()
+
+for dir in "${SOURCE_DIRS[@]}"; do
+  RAT_REPORT="$dir/target/rat.txt"
+  [[ -f "$RAT_REPORT" ]] || continue
+  tree_name=$(basename "$dir")
+  tree_count=0
+  while IFS= read -r rel || [[ -n "$rel" ]]; do
+    [[ -z "$rel" ]] && continue
+    tree_count=$((tree_count + 1))
+    BINARY_TOTAL=$((BINARY_TOTAL + 1))
+    if [[ "$rel" == *.* ]]; then
+      ext=".${rel##*.}"
+      ext="${ext,,}"
+    else
+      ext="(noext)"
+    fi
+    BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
+    case "$ext" in
+      .class|.jar|.so|.o|.a|.exe|.dll|.dylib|.pyc|.whl|.node)
+        COMPILED_BINARIES+=("${tree_name}:${rel}")
+        ;;
+    esac
+  done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+  echo "[apache-rat]   $tree_name: $tree_count binary"
+done
+
+echo "[apache-rat] Total RAT binaries: $BINARY_TOTAL"
+if [[ ${#BINARY_EXT_COUNTS[@]} -gt 0 ]]; then
+  echo "[apache-rat] By extension:"
+  for ext in "${!BINARY_EXT_COUNTS[@]}"; do
+    echo "[apache-rat]   ${BINARY_EXT_COUNTS[$ext]}  $ext"
+  done | sort -k2 -nr
+fi
+
+echo "" >> "$SUMMARY_FILE"
+echo "RAT binary files (marked B, not excludes): $BINARY_TOTAL" >> "$SUMMARY_FILE"
+if [[ ${#COMPILED_BINARIES[@]} -eq 0 ]]; then
+  echo "[apache-rat] ✅ PASS: No compiled binaries in the RAT binary list"
+  echo "Compiled binaries: 0" >> "$SUMMARY_FILE"
+else
+  echo "[apache-rat] ❌ FAIL: Compiled binaries in the source tree"
+  for item in "${COMPILED_BINARIES[@]}"; do
+    echo "[apache-rat]   - $item"
+    echo "  - $item" >> "$SUMMARY_FILE"
+  done
+  VALIDATION_PASSED=false
+fi
+
 echo "[apache-rat] ========================================="
 
 # Exit based on validation result
 if [[ "$VALIDATION_PASSED" == "true" ]]; then
   exit 0
-else
-  # Fail when files are missing license headers
-  # For legitimate exclusions, configure them in pom.xml under <excludes>
-  echo "[apache-rat]"
-  echo "[apache-rat] ❌ FAILED - Files missing license headers must be fixed or excluded"
-  echo "[apache-rat]"
-  echo "[apache-rat] Options to resolve:"
-  echo "[apache-rat]   1. Add Apache license headers to source files"
-  echo "[apache-rat]   2. Configure RAT exclusions in pom.xml for legitimate cases:"
-  echo "[apache-rat]      <plugin>"
-  echo "[apache-rat]        <groupId>org.apache.rat</groupId>"
-  echo "[apache-rat]        <artifactId>apache-rat-plugin</artifactId>"
-  echo "[apache-rat]        <configuration>"
-  echo "[apache-rat]          <excludes>"
-  echo "[apache-rat]            <exclude>**/*.md</exclude>"
-  echo "[apache-rat]            <exclude>**/LICENSE</exclude>"
-  echo "[apache-rat]            <exclude>**/NOTICE</exclude>"
-  echo "[apache-rat]            <!-- Add more patterns as needed -->"
-  echo "[apache-rat]          </excludes>"
-  echo "[apache-rat]        </configuration>"
-  echo "[apache-rat]      </plugin>"
-  exit 1
 fi
+
+echo "[apache-rat]"
+if [[ ${NEEDS_ATTENTION:-0} -ne 0 ]]; then
+  echo "[apache-rat] ❌ FAILED - Files missing license headers must be fixed or excluded"
+  echo "[apache-rat] Unknown licenses: ${UNKNOWN_LIST:-$SUMMARY_FILE}"
+fi
+if [[ ${#COMPILED_BINARIES[@]} -gt 0 ]]; then
+  echo "[apache-rat] ❌ FAILED - Compiled binaries do not belong in a source release"
+fi
+exit 1
