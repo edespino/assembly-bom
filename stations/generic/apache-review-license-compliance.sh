@@ -27,7 +27,10 @@ fi
 
 SOURCE_DIR="${1:-.}"
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
-REVIEW_OUTPUT_DIR="${SOURCE_DIR}/license-review-$(date +%Y%m%d-%H%M%S)"
+# Keep review output outside the extracted tree. RAT scans that tree and
+# flags files we drop inside it.
+REVIEW_ROOT="${PARTS_DIR:-$HOME/bom-parts}/review-output/${NAME:-manual}/$(basename "$SOURCE_DIR")"
+REVIEW_OUTPUT_DIR="${REVIEW_ROOT}/license-review-$(date +%Y%m%d-%H%M%S)"
 
 echo "=========================================="
 echo "Apache Source Release License Review"
