@@ -235,9 +235,19 @@ for artifact in "${BIN_ARTIFACTS[@]}"; do
   fi
 done
 
-# Save artifact list for extraction step (one per line)
-printf "%s\n" "${SRC_ARTIFACTS[@]}" > .discovered-src-artifacts
-printf "%s\n" "${BIN_ARTIFACTS[@]}" > .discovered-bin-artifacts
+# Save artifact lists for later steps. An empty array must not write a blank line:
+# printf with only a format string still emits a newline, and readers then count a phantom artifact.
+write_artifact_list() {
+  local dest="$1"
+  shift
+  if [[ $# -eq 0 ]]; then
+    : > "$dest"
+  else
+    printf '%s\n' "$@" > "$dest"
+  fi
+}
+write_artifact_list .discovered-src-artifacts "${SRC_ARTIFACTS[@]}"
+write_artifact_list .discovered-bin-artifacts "${BIN_ARTIFACTS[@]}"
 
 echo ""
 echo "[discover-verify] ========================================="

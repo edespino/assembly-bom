@@ -19,8 +19,9 @@ echo "[validate-apache-compliance] Component: $COMPONENT_NAME"
 echo "[validate-apache-compliance] Directory: $COMPONENT_DIR"
 echo ""
 
-# Find all extracted source directories (ending in -src)
-mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -maxdepth 1 -type d -name "*-src" | sort)
+# Extracted trees are the top-level directories inside each source tarball.
+# Names are not required to end in -src. apache-cloudberry-2.2.0-incubating is valid.
+mapfile -t SOURCE_DIRS < <(find "$COMPONENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' | sort)
 
 if [[ ${#SOURCE_DIRS[@]} -eq 0 ]]; then
   echo "[validate-apache-compliance] ❌ No extracted source directories found"
@@ -370,7 +371,7 @@ else
   echo "[validate-apache-compliance] NOTE: This is a reporting step - exit code is 0 to allow pipeline continuation"
   echo "[validate-apache-compliance]       Compliance issues are documented but do not stop the review process"
   echo "[validate-apache-compliance]"
-  echo "[validate-apache-compliance] For release structure issues (RC designation, multiple tarballs),"
+  echo "[validate-apache-compliance] For release structure issues (RC designation, artifact names),"
   echo "[validate-apache-compliance] see apache-validate-release-structure step output"
   echo "[validate-apache-compliance] ========================================="
   exit 0

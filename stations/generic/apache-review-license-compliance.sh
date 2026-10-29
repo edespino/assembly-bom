@@ -8,6 +8,23 @@
 
 set -e
 
+# assemble.sh invokes this with no arguments. Review each extracted source tree
+# for the component, not the assembly-bom checkout.
+if [[ $# -eq 0 && -n "${NAME:-}" ]]; then
+  COMPONENT_DIR="${PARTS_DIR:-$HOME/bom-parts}/$NAME"
+  if [[ -d "$COMPONENT_DIR" ]]; then
+    mapfile -t REVIEW_DIRS < <(find "$COMPONENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' | sort)
+    if [[ ${#REVIEW_DIRS[@]} -gt 0 ]]; then
+      review_rc=0
+      for review_dir in "${REVIEW_DIRS[@]}"; do
+        echo "[review-license] Reviewing $(basename "$review_dir")"
+        bash "$0" "$review_dir" || review_rc=1
+      done
+      exit "$review_rc"
+    fi
+  fi
+fi
+
 SOURCE_DIR="${1:-.}"
 REVIEW_OUTPUT_DIR="license-review-$(date +%Y%m%d-%H%M%S)"
 

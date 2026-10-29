@@ -67,60 +67,107 @@ fi
 
 echo ""
 echo "[validate-release-structure] ========================================="
-echo "[validate-release-structure] Step 2: Validating Source Tarball Count"
+echo "[validate-release-structure] Step 2: Validating Source Artifacts"
 echo "[validate-release-structure] ========================================="
 
-# Check for multiple source tarballs (Apache policy violation)
+# A single release vote may cover several source artifacts of the same project.
+# Count is not a policy failure. Each artifact is checked on its own.
 ARTIFACTS_DIR="$PARTS_DIR/${COMPONENT_NAME}-artifacts"
+INCUBATOR_RELEASE=false
+if [[ "$RELEASE_URL" == *"/incubator/"* ]] || [[ "${RELEASE_VERSION:-}" == *incubating* ]]; then
+  INCUBATOR_RELEASE=true
+fi
+
+read_artifact_names() {
+  local list_file="$1"
+  local -n _out=$2
+  _out=()
+  [[ -f "$list_file" ]] || return 0
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    _out+=("$line")
+  done < "$list_file"
+}
+
 if [[ -f "$ARTIFACTS_DIR/.discovered-src-artifacts" ]]; then
-  SRC_COUNT=$(wc -l < "$ARTIFACTS_DIR/.discovered-src-artifacts")
-  
+  read_artifact_names "$ARTIFACTS_DIR/.discovered-src-artifacts" SRC_ARTIFACTS
+  SRC_COUNT=${#SRC_ARTIFACTS[@]}
+
   echo "[validate-release-structure] Discovered source tarballs: $SRC_COUNT"
   echo ""
 
-  if [[ $SRC_COUNT -eq 1 ]]; then
-    SRC_ARTIFACT=$(cat "$ARTIFACTS_DIR/.discovered-src-artifacts")
-    echo "[validate-release-structure] ✅ PASS: Single source tarball in release"
-    echo "[validate-release-structure]    Artifact: $SRC_ARTIFACT"
-  elif [[ $SRC_COUNT -gt 1 ]]; then
-    echo "[validate-release-structure] ❌ FAIL: Multiple source tarballs in single release"
-    echo "[validate-release-structure]"
-    echo "[validate-release-structure]   Apache Release Policy Violation!"
-    echo "[validate-release-structure]"
-    echo "[validate-release-structure]   Found $SRC_COUNT source tarballs:"
-    while IFS= read -r artifact; do
-      echo "[validate-release-structure]     - $artifact"
-    done < "$ARTIFACTS_DIR/.discovered-src-artifacts"
-    echo "[validate-release-structure]"
-    echo "[validate-release-structure]   Why this is a problem:"
-    echo "[validate-release-structure]   - Apache releases are defined by Git repository, not umbrella projects"
-    echo "[validate-release-structure]   - Each repository requires a separate release vote"
-    echo "[validate-release-structure]   - Bundling multiple repositories violates release independence"
-    echo "[validate-release-structure]   - Users cannot verify which repository produced each tarball"
-    echo "[validate-release-structure]   - Makes source code traceability impossible"
-    echo "[validate-release-structure]"
-    echo "[validate-release-structure]   Correct approach:"
-    echo "[validate-release-structure]   - Create separate release votes for each repository"
-    echo "[validate-release-structure]   - Each vote includes ONE source tarball from ONE repository"
-    echo "[validate-release-structure]   - Example for this project:"
-    echo "[validate-release-structure]       [VOTE] Release Apache ${COMPONENT_NAME%-*} Core 1.x.x-incubating (RC1)"
-    echo "[validate-release-structure]       [VOTE] Release Apache ${COMPONENT_NAME%-*} Component2 1.x.x-incubating (RC1)"
-    echo "[validate-release-structure]       [VOTE] Release Apache ${COMPONENT_NAME%-*} Component3 1.x.x-incubating (RC1)"
-    echo "[validate-release-structure]"
-    echo "[validate-release-structure]   Reference:"
-    echo "[validate-release-structure]   - Apache Release Policy: https://www.apache.org/legal/release-policy.html"
-    echo "[validate-release-structure]   - Section: 'What Must Every ASF Release Contain'"
-    echo "[validate-release-structure]   - 'Releases are identified by a unique version number'"
-    echo "[validate-release-structure]"
+  if [[ $SRC_COUNT -eq 0 ]]; then
+    echo "[validate-release-structure] ❌ FAIL: No source artifacts found"
+    echo "[validate-release-structure]    A source release must contain at least one source tarball"
     VALIDATION_PASSED=false
   else
-    echo "[validate-release-structure] ⚠ WARNING: No source artifacts found in discovery"
-    echo "[validate-release-structure]    This may indicate the discover step hasn't run yet"
+    echo "[validate-release-structure] ✅ PASS: $SRC_COUNT source artifact(s) in this release"
+    echo "[validate-release-structure]    Multiple source artifacts are allowed in one release vote."
+    echo "[validate-release-structure]    Each artifact is validated on its own."
+    echo ""
+
+    for artifact in "${SRC_ARTIFACTS[@]}"; do
+      echo "[validate-release-structure] Artifact: $artifact"
+
+      if [[ "$artifact" != *-src.* && "$artifact" != *-source.* ]]; then
+        echo "[validate-release-structure] ❌ FAIL: Not a source artifact name: $artifact"
+        VALIDATION_PASSED=false
+      else
+        echo "[validate-release-structure] ✅ PASS: Source artifact name"
+      fi
+
+      if [[ "$INCUBATOR_RELEASE" == true ]]; then
+        if [[ "$artifact" == *incubating* ]]; then
+          echo "[validate-release-structure] ✅ PASS: Filename contains 'incubating'"
+        else
+          echo "[validate-release-structure] ❌ FAIL: Incubating source artifact must contain 'incubating': $artifact"
+          VALIDATION_PASSED=false
+        fi
+      fi
+
+      if [[ -f "$ARTIFACTS_DIR/$artifact" ]]; then
+        echo "[validate-release-structure] ✅ PASS: Artifact file is present"
+      else
+        echo "[validate-release-structure] ❌ FAIL: Artifact file missing: $ARTIFACTS_DIR/$artifact"
+        VALIDATION_PASSED=false
+      fi
+
+      if [[ -f "$ARTIFACTS_DIR/$artifact.asc" && -f "$ARTIFACTS_DIR/$artifact.sha512" ]]; then
+        echo "[validate-release-structure] ✅ PASS: Signature and SHA512 files are present"
+      else
+        echo "[validate-release-structure] ❌ FAIL: Missing .asc or .sha512 for $artifact"
+        VALIDATION_PASSED=false
+      fi
+      echo ""
+    done
   fi
 else
-  echo "[validate-release-structure] ⚠ WARNING: No discovered artifacts file found"
+  echo "[validate-release-structure] ❌ FAIL: No discovered artifacts file found"
   echo "[validate-release-structure]    Expected: $ARTIFACTS_DIR/.discovered-src-artifacts"
   echo "[validate-release-structure]    Please run apache-discover-and-verify-release first"
+  VALIDATION_PASSED=false
+fi
+
+echo "[validate-release-structure] ========================================="
+echo "[validate-release-structure] Step 3: Unexpected binaries in the release directory"
+echo "[validate-release-structure] ========================================="
+
+if [[ -f "$ARTIFACTS_DIR/.discovered-bin-artifacts" ]]; then
+  read_artifact_names "$ARTIFACTS_DIR/.discovered-bin-artifacts" BIN_ARTIFACTS
+  if [[ ${#BIN_ARTIFACTS[@]} -eq 0 ]]; then
+    echo "[validate-release-structure] ✅ PASS: No binary artifacts in the release directory"
+  else
+    echo "[validate-release-structure] ❌ FAIL: Unexpected binary artifacts in the release directory"
+    for artifact in "${BIN_ARTIFACTS[@]}"; do
+      echo "[validate-release-structure]     - $artifact"
+    done
+    echo "[validate-release-structure]    A source release vote does not include convenience binaries."
+    VALIDATION_PASSED=false
+  fi
+else
+  echo "[validate-release-structure] ⚠ WARNING: No discovered binary list found"
+  echo "[validate-release-structure]    Expected: $ARTIFACTS_DIR/.discovered-bin-artifacts"
 fi
 
 echo ""
@@ -136,7 +183,8 @@ if [[ "$VALIDATION_PASSED" == "true" ]]; then
   echo "[validate-release-structure]"
   echo "[validate-release-structure] Release structure complies with Apache policies"
   echo "[validate-release-structure] - RC designation present in URL"
-  echo "[validate-release-structure] - Single source tarball (one repository per vote)"
+  echo "[validate-release-structure] - Each source artifact checked on its own"
+  echo "[validate-release-structure] - No unexpected binary artifacts in the release directory"
   echo "[validate-release-structure] ========================================="
   exit 0
 else
