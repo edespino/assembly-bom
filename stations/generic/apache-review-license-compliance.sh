@@ -26,7 +26,8 @@ if [[ $# -eq 0 && -n "${NAME:-}" ]]; then
 fi
 
 SOURCE_DIR="${1:-.}"
-REVIEW_OUTPUT_DIR="license-review-$(date +%Y%m%d-%H%M%S)"
+SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+REVIEW_OUTPUT_DIR="${SOURCE_DIR}/license-review-$(date +%Y%m%d-%H%M%S)"
 
 echo "=========================================="
 echo "Apache Source Release License Review"
