@@ -9,6 +9,33 @@ products:
             RELEASE_CANDIDATE: "rc3"
             RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/cloudberry/2.2.0-incubating-rc3"
             KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
+            EXPECTED_GP_VERSION: "2.2.0-incubating"
+            EXPECTED_GP_BUILD: "13d3c58eaa0"
+          configure_flags: |
+            --disable-external-fts
+            --enable-gpcloud
+            --enable-gpfdist
+            --enable-ic-proxy
+            --enable-mapreduce
+            --enable-orafce
+            --enable-orca
+            --enable-pax
+            --enable-pxf
+            --enable-tap-tests
+            --with-gssapi
+            --with-ldap
+            --with-libbz2
+            --with-libcurl
+            --with-libxml
+            --with-lz4
+            --with-openssl
+            --with-pam
+            --with-perl
+            --with-pgport=5432
+            --with-python
+            --with-ssl=openssl
+            --with-uuid=e2fs
+            --with-zstd
           steps:
             - apache-discover-and-verify-release
             - apache-extract-discovered
@@ -16,6 +43,8 @@ products:
             - apache-validate-compliance
             - apache-rat
             - apache-review-license-compliance
+            - apache-build-release
+            - apache-check-built-versions
 
         # Apache HugeGraph - Incubator project
         - name: hugegraph
