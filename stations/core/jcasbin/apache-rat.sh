@@ -80,11 +80,12 @@ is_compiled() {
 fail=0
 for tree in "${SELECTED[@]}"; do
   echo "[jcasbin-rat] Scanning $(basename "$tree")"
+  echo "[jcasbin-rat] The project pom does not declare apache-rat-plugin. Invoking 0.18 by coordinates."
   rm -f "$tree/target/rat.txt"
   set +e
   (
     cd "$tree"
-    mvn -B -ntp apache-rat:check
+    mvn -B -ntp org.apache.rat:apache-rat-plugin:0.18:check
   )
   rc=$?
   set -e
@@ -93,8 +94,12 @@ for tree in "${SELECTED[@]}"; do
     echo "[jcasbin-rat] ERROR: no rat.txt (mvn exit $rc)"
     exit 1
   fi
+  echo "[jcasbin-rat] Report summary:"
+  grep -E '^(Notes|Binaries|Archives|Standards|Unapproved|Generated|Unknown):' "$report" | sed 's/^/[jcasbin-rat]   /'
+  echo "[jcasbin-rat] Unapproved lines:"
+  grep -E '^[[:space:]]*!' "$report" | sed 's/^/[jcasbin-rat]   /' || true
   if [[ "$rc" -ne 0 ]]; then
-    echo "[jcasbin-rat] FAIL: mvn apache-rat:check exited $rc"
+    echo "[jcasbin-rat] FAIL: mvn org.apache.rat:apache-rat-plugin:0.18:check exited $rc"
     fail=1
   fi
 

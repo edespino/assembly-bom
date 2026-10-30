@@ -47,10 +47,22 @@ if ! command -v java >/dev/null 2>&1; then
   echo "[jcasbin-build] ERROR: java not on PATH"
   exit 1
 fi
+if [[ -x "${HOME}/opt/apache-maven-3.9.16/bin/mvn" ]]; then
+  export PATH="${HOME}/opt/apache-maven-3.9.16/bin:${PATH}"
+fi
 if ! command -v mvn >/dev/null 2>&1; then
   echo "[jcasbin-build] ERROR: mvn not on PATH"
   exit 1
 fi
+mvn_line=$(mvn -version | head -1)
+echo "[jcasbin-build] $mvn_line"
+case "$mvn_line" in
+  "Apache Maven 3.9"*) ;;
+  *)
+    echo "[jcasbin-build] ERROR: BUILDING.md requires Maven 3.9. Refusing to build on $mvn_line"
+    exit 1
+    ;;
+esac
 
 JAVA_LINE=$(java -version 2>&1 | head -1)
 echo "[jcasbin-build] JAVA_HOME=$JAVA_HOME"
