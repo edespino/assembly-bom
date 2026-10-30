@@ -6,10 +6,15 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-COMPONENT_NAME="${NAME:-cloudberry}"
+if [[ "${NAME:-}" != "cloudberry" ]]; then
+  echo "[check-built-versions] ERROR: this step is cloudberry-only (NAME=${NAME:-unset})" >&2
+  exit 1
+fi
+
+COMPONENT_NAME="$NAME"
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 COMPONENT_DIR="$PARTS_DIR/$COMPONENT_NAME"
-INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/cloudberry}"
+INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local/$NAME}"
 GOBIN="${GOBIN:-${GOPATH:-$HOME/go}/bin}"
 RELEASE_VERSION="${RELEASE_VERSION:-2.2.0}"
 EXPECTED_GP_VERSION="${EXPECTED_GP_VERSION:-${RELEASE_VERSION}-incubating}"

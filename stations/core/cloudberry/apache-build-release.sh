@@ -5,6 +5,11 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+if [[ "${NAME:-}" != "cloudberry" ]]; then
+  echo "[apache-build-release] ERROR: this step is cloudberry-only (NAME=${NAME:-unset})" >&2
+  exit 1
+fi
+
 NAME="${NAME:?Missing NAME}"
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 COMPONENT_DIR="$PARTS_DIR/$NAME"
