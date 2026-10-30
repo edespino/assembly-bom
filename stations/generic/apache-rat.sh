@@ -47,7 +47,159 @@ echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 1: Running Apache RAT on All Sources"
 echo "[apache-rat] ========================================="
 echo "[apache-rat] Command: mvn $RAT_MAVEN_COMMAND"
+echo "[apache-rat] Trees without pom.xml are scanned by a generated RAT pom."
+echo "[apache-rat] A missing report, or a report that scanned zero files, fails."
 echo ""
+
+declare -A RAT_REPORT_FOR=()
+
+xml_escape() {
+  local s=$1
+  s=${s//&/&amp;}
+  s=${s//</&lt;}
+  s=${s//>/&gt;}
+  printf '%s' "$s"
+}
+
+maven_log_for() {
+  local dir=$1
+  printf '%s\n' "${PARTS_DIR}/review-output/${COMPONENT_NAME}/rat-logs/$(basename "$dir").log"
+}
+
+files_scanned() {
+  local report=$1
+  local line notes=0 binaries=0 archives=0 standards=0 sum markers
+  while IFS= read -r line; do
+    case "$line" in
+      "Notes:"*) notes=${line#Notes:}; notes=${notes//[[:space:]]/}; notes=${notes%%[^0-9]*} ;;
+      "Binaries:"*) binaries=${line#Binaries:}; binaries=${binaries//[[:space:]]/}; binaries=${binaries%%[^0-9]*} ;;
+      "Archives:"*) archives=${line#Archives:}; archives=${archives//[[:space:]]/}; archives=${archives%%[^0-9]*} ;;
+      "Standards:"*) standards=${line#Standards:}; standards=${standards//[[:space:]]/}; standards=${standards%%[^0-9]*} ;;
+    esac
+  done < "$report"
+  sum=$(( ${notes:-0} + ${binaries:-0} + ${archives:-0} + ${standards:-0} ))
+  if [[ "$sum" -gt 0 ]]; then
+    printf '%s\n' "$sum"
+    return
+  fi
+  markers=$(grep -Ec '^[[:space:]]*(!?+|[A-Z]+)[[:space:]]+/' "$report" || true)
+  printf '%s\n' "${markers:-0}"
+}
+
+resolve_b_path() {
+  local dir=$1 rel=$2
+  if [[ "$rel" == /* ]]; then
+    printf '%s\n' "$rel"
+  else
+    printf '%s\n' "$dir/$rel"
+  fi
+}
+
+# Return 0 when the RAT B entry is a compiled artifact.
+# Suffix covers versioned shared libraries. file(1) covers extensionless
+# ELF, Mach-O, and PE. If file(1) is missing, a non-allowlisted name fails.
+is_compiled_binary() {
+  local path=$1
+  local base desc
+  base=$(basename "$path")
+  base=$(printf '%s' "$base" | tr '[:upper:]' '[:lower:]')
+  case "$base" in
+    *.so|*.so.[0-9]*|*.dylib|*.dylib.[0-9]*|*.dll|*.class|*.jar|*.o|*.a|*.exe|*.pyc|*.whl|*.node)
+      return 0
+      ;;
+  esac
+  if [[ ! -e "$path" ]] || ! command -v file >/dev/null 2>&1; then
+    case "$base" in
+      *.png|*.jpg|*.jpeg|*.gif|*.ico|*.svg|*.webp|*.bmp|*.tif|*.tiff|*.woff|*.woff2|*.ttf|*.eot|*.otf|*.pdf|*.mp3|*.mp4|*.wav|*.ogg|*.webm|*.avif|*.icns|*.gz|*.zip|*.tar|*.tgz|*.bz2|*.xz|*.7z)
+        return 1
+        ;;
+    esac
+    return 0
+  fi
+  desc=$(file -b -- "$path" 2>/dev/null || true)
+  desc=$(printf '%s' "$desc" | tr '[:upper:]' '[:lower:]')
+  case "$desc" in
+    *elf*|*mach-o*|*pe32*|*ms-dos*|*java?class*|*byte-compiled*|*shared?object*|*ar?archive*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+all_reports() {
+  local dir=$1
+  if [[ -n "${RAT_REPORT_FOR[$dir]:-}" && -f "${RAT_REPORT_FOR[$dir]}" ]]; then
+    printf '%s\n' "${RAT_REPORT_FOR[$dir]}"
+    return
+  fi
+  find "$dir" -type f -name rat.txt -path '*/target/rat.txt' -print | sort
+}
+
+require_scanned() {
+  local dir=$1
+  local report total=0 count
+  local -a reports=()
+  while IFS= read -r report; do
+    [[ -n "$report" ]] && reports+=("$report")
+  done < <(all_reports "$dir")
+  if [[ ${#reports[@]} -eq 0 ]]; then
+    echo "[apache-rat] ❌ No RAT report for $(basename "$dir")"
+    exit 1
+  fi
+  for report in "${reports[@]}"; do
+    count=$(files_scanned "$report")
+    total=$((total + count))
+  done
+  if [[ "$total" -eq 0 ]]; then
+    echo "[apache-rat] ❌ RAT scanned zero files in $(basename "$dir")"
+    exit 1
+  fi
+  echo "[apache-rat] ✓ RAT scanned $total file(s) in $(basename "$dir")"
+}
+
+run_rat_without_pom() {
+  local extracted=$1
+  local tree pom_dir report log basedir_xml report_xml out_root
+  tree=$(basename "$extracted")
+  out_root="${PARTS_DIR}/review-output/${COMPONENT_NAME}"
+  pom_dir="${out_root}/rat-pom/${tree}"
+  report="${out_root}/rat/${tree}/rat.txt"
+  log=$(maven_log_for "$extracted")
+  mkdir -p "$pom_dir" "$(dirname "$report")" "$(dirname "$log")"
+  basedir_xml=$(xml_escape "$extracted")
+  report_xml=$(xml_escape "$report")
+  cat > "$pom_dir/pom.xml" <<EOF
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.apache.review</groupId>
+  <artifactId>rat-scan</artifactId>
+  <version>1</version>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>0.16.1</version>
+        <configuration>
+          <basedir>${basedir_xml}</basedir>
+          <reportFile>${report_xml}</reportFile>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+EOF
+  echo "[apache-rat] No pom.xml in ${tree}. Scanning with a generated RAT pom."
+  echo "[apache-rat] Report: $report"
+  set +e
+  (
+    IFS=$' \t\n'
+    mvn -f "$pom_dir/pom.xml" org.apache.rat:apache-rat-plugin:0.16.1:check 2>&1 | tee "$log"
+  )
+  set -e
+  echo "[apache-rat] Maven finished for ${tree}"
+  RAT_REPORT_FOR["$extracted"]="$report"
+}
 
 # Process each source directory
 for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
@@ -55,62 +207,45 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
   echo "[apache-rat] Processing: ${EXTRACTED_DIR#$COMPONENT_DIR/}"
   echo "[apache-rat] ----------------------------------------"
 
-  # Check if this is a Maven project (has pom.xml)
   if [[ ! -f "$EXTRACTED_DIR/pom.xml" ]]; then
-    echo "[apache-rat] ⚠ No pom.xml found - not a Maven project"
-
-    # Detect build system for informational purposes
-    if [[ -f "$EXTRACTED_DIR/pyproject.toml" ]]; then
-      echo "[apache-rat] ℹ Detected Python project (pyproject.toml)"
+    if [[ -f "$EXTRACTED_DIR/go.mod" ]]; then
+      echo "[apache-rat] ℹ Detected Go project"
+    elif [[ -f "$EXTRACTED_DIR/pyproject.toml" ]]; then
+      echo "[apache-rat] ℹ Detected Python project"
     elif [[ -f "$EXTRACTED_DIR/build.gradle" ]] || [[ -f "$EXTRACTED_DIR/build.gradle.kts" ]]; then
       echo "[apache-rat] ℹ Detected Gradle project"
-    elif [[ -f "$EXTRACTED_DIR/package.json" ]]; then
-      echo "[apache-rat] ℹ Detected Node.js project"
-    elif [[ -f "$EXTRACTED_DIR/go.mod" ]]; then
-      echo "[apache-rat] ℹ Detected Go project"
-    elif [[ -f "$EXTRACTED_DIR/Cargo.toml" ]]; then
-      echo "[apache-rat] ℹ Detected Rust project"
     else
-      echo "[apache-rat] ℹ Unknown build system"
+      echo "[apache-rat] ℹ No pom.xml"
     fi
-
-    echo "[apache-rat] ⏭ Skipping - Apache RAT via Maven requires pom.xml"
+    run_rat_without_pom "$EXTRACTED_DIR"
+    require_scanned "$EXTRACTED_DIR"
     echo ""
     continue
   fi
 
   echo "[apache-rat] ✓ Found pom.xml - running Maven Apache RAT"
+  pushd "$EXTRACTED_DIR" >/dev/null
 
-  # Change to extracted directory
-  cd "$EXTRACTED_DIR"
-
-  # Clean old rat.txt files to avoid stale data
   echo "[apache-rat] Cleaning old RAT reports..."
   find . -name "rat.txt" -path "*/target/rat.txt" -delete 2>/dev/null || true
 
-  # Run Apache RAT (allow it to fail - we'll check the report)
-  # Note: We don't quote $RAT_MAVEN_COMMAND to allow word splitting
+  log=$(maven_log_for "$EXTRACTED_DIR")
+  mkdir -p "$(dirname "$log")"
+
+  # Allow RAT to exit non-zero. A missing header is a result, not a skipped scan.
   set +e
   (
     IFS=$' \t\n'
     # shellcheck disable=SC2086
-    mvn $RAT_MAVEN_COMMAND 2>&1 | tee "/tmp/rat-maven-output-$(basename "$EXTRACTED_DIR").log"
+    mvn $RAT_MAVEN_COMMAND 2>&1 | tee "$log"
   )
   RAT_EXIT_CODE=$?
   set -e
+  popd >/dev/null
 
   echo ""
   echo "[apache-rat] Maven exit code: $RAT_EXIT_CODE"
-
-  # Check if rat.txt was generated
-  if [[ ! -f "target/rat.txt" ]]; then
-    echo "[apache-rat] ⚠ RAT report not found at target/rat.txt for $(basename "$EXTRACTED_DIR")"
-    echo "[apache-rat] Skipping this directory"
-    echo ""
-    continue
-  fi
-
-  echo "[apache-rat] ✓ RAT report generated: $EXTRACTED_DIR/target/rat.txt"
+  require_scanned "$EXTRACTED_DIR"
   echo ""
 done
 
@@ -133,11 +268,11 @@ TOTAL_JAVADOCS=0
 
 # Process each source directory's RAT output
 for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
-  MAVEN_OUTPUT="/tmp/rat-maven-output-$(basename "$EXTRACTED_DIR").log"
+  MAVEN_OUTPUT=$(maven_log_for "$EXTRACTED_DIR")
 
   if [[ ! -f "$MAVEN_OUTPUT" ]]; then
-    echo "[apache-rat] ⚠ Skipping $(basename "$EXTRACTED_DIR") - no Maven output found"
-    continue
+    echo "[apache-rat] ❌ No Maven output for $(basename "$EXTRACTED_DIR")"
+    exit 1
   fi
 
   echo "[apache-rat] Analyzing: $(basename "$EXTRACTED_DIR")"
@@ -155,15 +290,15 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
     done <<< "$RAT_SUMMARIES"
   fi
 
-  # Extract file statistics from rat.txt
-  RAT_REPORT="$EXTRACTED_DIR/target/rat.txt"
-  if [[ -f "$RAT_REPORT" ]]; then
+  # Extract file statistics from every RAT report for this tree.
+  while IFS= read -r RAT_REPORT; do
+    [[ -f "$RAT_REPORT" ]] || continue
     TOTAL_FILES=$((TOTAL_FILES + $(grep -E "^Notes: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
     TOTAL_BINARIES=$((TOTAL_BINARIES + $(grep -E "^Binaries: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
     TOTAL_ARCHIVES=$((TOTAL_ARCHIVES + $(grep -E "^Archives: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
     TOTAL_STANDARDS=$((TOTAL_STANDARDS + $(grep -E "^Standards: [0-9]+" "$RAT_REPORT" | awk '{print $2}' || echo "0")))
     TOTAL_JAVADOCS=$((TOTAL_JAVADOCS + $(grep -E "^JavaDoc Style: [0-9]+" "$RAT_REPORT" | awk '{print $3}' || echo "0")))
-  fi
+  done < <(all_reports "$EXTRACTED_DIR")
 done
 
 # Use aggregated totals for reporting
@@ -217,7 +352,7 @@ echo "[apache-rat] ========================================="
 UNKNOWN_FILES=""
 for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
   # Find all rat.txt files in this source directory's modules
-  ALL_RAT_FILES=$(find "$EXTRACTED_DIR" -name "rat.txt" -path "*/target/rat.txt" 2>/dev/null || true)
+  ALL_RAT_FILES=$(all_reports "$EXTRACTED_DIR" || true)
 
   if [[ -n "$ALL_RAT_FILES" ]]; then
     while IFS= read -r rat_file; do
@@ -350,9 +485,10 @@ fi
 echo "[apache-rat]"
 echo "[apache-rat] Individual RAT reports:"
 for dir in "${SOURCE_DIRS[@]}"; do
-  if [[ -f "$dir/target/rat.txt" ]]; then
-    echo "[apache-rat]   - $(basename "$dir"): $dir/target/rat.txt"
-  fi
+  while IFS= read -r report; do
+    [[ -n "$report" ]] || continue
+    echo "[apache-rat]   - $(basename "$dir"): $report"
+  done < <(all_reports "$dir")
 done
 echo "[apache-rat]"
 echo "[apache-rat] Summary report: $SUMMARY_FILE"
@@ -375,27 +511,32 @@ BINARY_TOTAL=0
 declare -A BINARY_EXT_COUNTS=()
 
 for dir in "${SOURCE_DIRS[@]}"; do
-  RAT_REPORT="$dir/target/rat.txt"
-  [[ -f "$RAT_REPORT" ]] || continue
   tree_name=$(basename "$dir")
   tree_count=0
-  while IFS= read -r rel || [[ -n "$rel" ]]; do
-    [[ -z "$rel" ]] && continue
-    tree_count=$((tree_count + 1))
-    BINARY_TOTAL=$((BINARY_TOTAL + 1))
-    if [[ "$rel" == *.* ]]; then
-      ext=".${rel##*.}"
-      ext="${ext,,}"
-    else
-      ext="(noext)"
-    fi
-    BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
-    case "$ext" in
-      .class|.jar|.so|.o|.a|.exe|.dll|.dylib|.pyc|.whl|.node)
+  mapfile -t tree_reports < <(all_reports "$dir")
+  if [[ ${#tree_reports[@]} -eq 0 ]]; then
+    echo "[apache-rat] ❌ No RAT report while classifying binaries in $tree_name"
+    exit 1
+  fi
+  for RAT_REPORT in "${tree_reports[@]}"; do
+    [[ -f "$RAT_REPORT" ]] || continue
+    while IFS= read -r rel || [[ -n "$rel" ]]; do
+      [[ -z "$rel" ]] && continue
+      tree_count=$((tree_count + 1))
+      BINARY_TOTAL=$((BINARY_TOTAL + 1))
+      if [[ "$rel" == *.* ]]; then
+        ext=".${rel##*.}"
+        ext="${ext,,}"
+      else
+        ext="(noext)"
+      fi
+      BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
+      path=$(resolve_b_path "$dir" "$rel")
+      if is_compiled_binary "$path"; then
         COMPILED_BINARIES+=("${tree_name}:${rel}")
-        ;;
-    esac
-  done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+      fi
+    done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+  done
   echo "[apache-rat]   $tree_name: $tree_count binary"
 done
 
