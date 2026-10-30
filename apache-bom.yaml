@@ -130,6 +130,22 @@ products:
             - build
             - apache-validate-build-artifacts
 
+        # Apache Casbin JCasbin - Incubator project, 1.100.0-rc5 vote
+        - name: jcasbin
+          env:
+            RELEASE_VERSION: "1.100.0"
+            RELEASE_CANDIDATE: "rc5"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/casbin/jcasbin-1.100.0-incubating-rc5"
+            KEYS_URL: "https://downloads.apache.org/incubator/casbin/KEYS"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-validate-release-structure
+            - apache-validate-compliance
+            - apache-rat
+            - apache-review-license-compliance
+            - build
+
       # Build tool dependencies
       dependencies:
         - name: sbt
