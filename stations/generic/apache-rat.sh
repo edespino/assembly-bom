@@ -82,7 +82,7 @@ files_scanned() {
     printf '%s\n' "$sum"
     return
   fi
-  markers=$(grep -Ec '^[[:space:]]*(!?+|[A-Z]+)[[:space:]]+/' "$report" || true)
+  markers=$(grep -Ec '^[[:space:]]*(!\?+|[A-Z]+)[[:space:]]+' "$report" || true)
   printf '%s\n' "${markers:-0}"
 }
 
@@ -191,6 +191,7 @@ run_rat_without_pom() {
 EOF
   echo "[apache-rat] No pom.xml in ${tree}. Scanning with a generated RAT pom."
   echo "[apache-rat] Report: $report"
+  rm -f "$report"
   set +e
   (
     IFS=$' \t\n'
