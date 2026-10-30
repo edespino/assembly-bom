@@ -33,7 +33,8 @@ apple=$(find "$tree" -name '._*' | wc -l | tr -d ' ')
 echo "[ozhera-compare] APPLEDOUBLE_COUNT: $apple"
 if [[ "$apple" != "0" ]]; then
   echo "[ozhera-compare] Sample AppleDouble paths:"
-  find "$tree" -name '._*' | head -5
+  mapfile -t samples < <(find "$tree" -name '._*')
+  printf '%s\n' "${samples[@]:0:5}"
 fi
 
 mkdir -p "$out"
@@ -52,17 +53,19 @@ trap 'rm -f "$archive_list" "$tag_list"' EXIT
 list_files "$tree" > "$archive_list"
 list_files "$clone" > "$tag_list"
 
-only_archive=$(comm -23 "$archive_list" "$tag_list" | wc -l | tr -d ' ')
-only_tag=$(comm -13 "$archive_list" "$tag_list" | wc -l | tr -d ' ')
+mapfile -t only_archive_files < <(comm -23 "$archive_list" "$tag_list")
+mapfile -t only_tag_files < <(comm -13 "$archive_list" "$tag_list")
+only_archive=${#only_archive_files[@]}
+only_tag=${#only_tag_files[@]}
 echo "[ozhera-compare] ONLY_ARCHIVE: $only_archive"
 echo "[ozhera-compare] ONLY_TAG: $only_tag"
 if [[ "$only_archive" != "0" ]]; then
   echo "[ozhera-compare] Files only in the archive (first 20):"
-  comm -23 "$archive_list" "$tag_list" | head -20
+  printf '%s\n' "${only_archive_files[@]:0:20}"
 fi
 if [[ "$only_tag" != "0" ]]; then
   echo "[ozhera-compare] Files only in the tag (first 20):"
-  comm -13 "$archive_list" "$tag_list" | head -20
+  printf '%s\n' "${only_tag_files[@]:0:20}"
 fi
 
 content_diff=0
