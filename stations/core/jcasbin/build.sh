@@ -76,13 +76,43 @@ case "$JAVA_LINE" in
 esac
 mvn -version
 
+if [[ -n "${CONFORMANCE_COMMIT:-}" && -n "${CONFORMANCE_REPO:-}" ]]; then
+  conf_root="${PARTS_DIR}/review-output/${NAME}/conformance-src"
+  rm -rf "$conf_root"
+  mkdir -p "$conf_root"
+  git -C "$conf_root" init
+  git -C "$conf_root" remote add origin "$CONFORMANCE_REPO"
+  git -C "$conf_root" fetch --depth 1 origin "$CONFORMANCE_COMMIT"
+  git -C "$conf_root" checkout --detach FETCH_HEAD
+  if [[ "$(git -C "$conf_root" rev-parse HEAD)" != "$CONFORMANCE_COMMIT" ]]; then
+    echo "[jcasbin-build] ERROR: conformance checkout is not $CONFORMANCE_COMMIT"
+    exit 1
+  fi
+  if [[ ! -d "$conf_root/conformance/cases" ]]; then
+    echo "[jcasbin-build] ERROR: conformance/cases not found in $CONFORMANCE_REPO"
+    exit 1
+  fi
+  export CASBIN_CONFORMANCE_DIR="$conf_root/conformance"
+  echo "[jcasbin-build] CASBIN_CONFORMANCE_DIR=$CASBIN_CONFORMANCE_DIR"
+else
+  echo "[jcasbin-build] WARN: CONFORMANCE_COMMIT is unset. ConformanceTest will skip."
+fi
+
 for tree in "${SELECTED[@]}"; do
   echo "[jcasbin-build] Building $(basename "$tree")"
-  echo "[jcasbin-build] Command: mvn -B -ntp clean verify -Dgpg.skip=true -Drevision=$RELEASE_VERSION"
-  (
-    cd "$tree"
-    mvn -B -ntp clean verify -Dgpg.skip=true -Drevision="$RELEASE_VERSION"
-  )
+  if [[ -f "$tree/RELEASING.md" ]]; then
+    echo "[jcasbin-build] Command: mvn -B -ntp clean verify -Papache-release -Drevision=$RELEASE_VERSION -Dgpg.skip=true"
+    (
+      cd "$tree"
+      mvn -B -ntp clean verify -Papache-release -Drevision="$RELEASE_VERSION" -Dgpg.skip=true
+    )
+  else
+    echo "[jcasbin-build] Command: mvn -B -ntp clean verify -Dgpg.skip=true -Drevision=$RELEASE_VERSION"
+    (
+      cd "$tree"
+      mvn -B -ntp clean verify -Dgpg.skip=true -Drevision="$RELEASE_VERSION"
+    )
+  fi
 done
 
 echo "[jcasbin-build] done"
