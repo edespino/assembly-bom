@@ -95,7 +95,7 @@ for tree in "${SELECTED[@]}"; do
     exit 1
   fi
   echo "[jcasbin-rat] Report summary:"
-  grep -E '^(Notes|Binaries|Archives|Standards|Unapproved|Generated|Unknown):' "$report" | sed 's/^/[jcasbin-rat]   /'
+  grep -E '^[[:space:]]*(Notes|Binaries|Archives|Standards|Unapproved|Generated|Unknown):' "$report" | sed 's/^/[jcasbin-rat]   /' || true
   echo "[jcasbin-rat] Unapproved lines:"
   grep -E '^[[:space:]]*!' "$report" | sed 's/^/[jcasbin-rat]   /' || true
   if [[ "$rc" -ne 0 ]]; then
