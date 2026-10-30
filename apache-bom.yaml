@@ -141,9 +141,10 @@ products:
             SOURCE_REPO: "https://github.com/apache/ozhera.git"
             SOURCE_TAG: "v2.2.7-incubating-rc3"
           steps:
+            - apache-require-source-identity
             - apache-discover-and-verify-release
             - apache-extract-discovered
-            - compare-to-tag
+            - apache-compare-to-tag
             - prepare
             - apache-validate-release-structure
             - apache-validate-compliance
