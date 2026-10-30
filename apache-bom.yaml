@@ -145,6 +145,7 @@ products:
             - apache-rat
             - apache-review-license-compliance
             - build
+            - check-built-versions
 
       # Build tool dependencies
       dependencies:
