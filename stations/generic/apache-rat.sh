@@ -88,11 +88,44 @@ files_scanned() {
 
 resolve_b_path() {
   local dir=$1 rel=$2
+  # RAT 0.18 writes "/casbin-logo.png" relative to the scanned tree, not
+  # as a filesystem-absolute path.
   if [[ "$rel" == /* ]]; then
-    printf '%s\n' "$rel"
+    if [[ -e "$dir/${rel#/}" ]]; then
+      printf '%s\n' "$dir/${rel#/}"
+    elif [[ -e "$rel" ]]; then
+      printf '%s\n' "$rel"
+    else
+      printf '%s\n' "$dir/${rel#/}"
+    fi
   else
     printf '%s\n' "$dir/$rel"
   fi
+}
+
+# Emit one path per binary file. RAT 0.16 writes "B <path>". RAT 0.18
+# writes the path on its own line and "B <media-type>" on the next, plus
+# a legend line "B Binary file". A media type is not a path.
+rat_b_paths() {
+  local report=$1 line rest prev=""
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^[[:space:]]*(/[^[:space:]]+)[[:space:]]*$ ]]; then
+      prev="${BASH_REMATCH[1]}"
+      continue
+    fi
+    if [[ "$line" =~ ^[[:space:]]*B[[:space:]]+([^[:space:]].*)[[:space:]]*$ ]]; then
+      rest="${BASH_REMATCH[1]}"
+      rest="${rest%"${rest##*[![:space:]]}"}"
+      if [[ "$rest" == "Binary file" || "$rest" =~ ^[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+$ ]]; then
+        if [[ -n "$prev" ]]; then
+          printf '%s\n' "$prev"
+        fi
+      else
+        printf '%s\n' "$rest"
+      fi
+      prev=""
+    fi
+  done < "$report"
 }
 
 # Return 0 when the RAT B entry is a compiled artifact.
@@ -536,7 +569,7 @@ for dir in "${SOURCE_DIRS[@]}"; do
       if is_compiled_binary "$path"; then
         COMPILED_BINARIES+=("${tree_name}:${rel}")
       fi
-    done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+    done < <(rat_b_paths "$RAT_REPORT")
   done
   echo "[apache-rat]   $tree_name: $tree_count binary"
 done
