@@ -158,6 +158,12 @@ All Apache scripts are prefixed with `apache-` and located in `stations/generic/
   - Auto-detects archive format (tar.gz, tar.bz2, tar.xz, zip)
   - Extracts all source and binary artifacts
 
+- **`apache-validate-release-structure.sh`** - Release directory structure
+  - A single release vote may contain several source artifacts of the same project
+  - Count greater than one is not a failure
+  - Each source artifact is checked on its own: source name, `incubating` when the release is incubating, file present, `.asc` and `.sha512` present
+  - A real binary artifact in the release directory fails. A blank line in the discovery list is not an artifact
+
 - **`apache-validate-compliance.sh`** - Apache compliance validation
   - **Incubator Detection**: Auto-detects incubator projects by checking:
     - RELEASE_URL contains "/incubator/" (primary detection method)

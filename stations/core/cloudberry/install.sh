@@ -115,23 +115,25 @@ else
   log "WARNING: cloudberry-env.sh not found at $INSTALL_PREFIX, skipping PyGreSQL install"
 fi
 
-# Post-install check - Load Cloudberry environment
-CLOUDBERRY_ENV_LOADER="${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
-# Fallback to absolute path if relative doesn't work
-if [ ! -f "$CLOUDBERRY_ENV_LOADER" ]; then
-  CLOUDBERRY_ENV_LOADER="/home/cbadmin/assembly-bom/config/cloudberry-env-loader.sh"
+# Post-install version check. --version is the PostgreSQL base (14.x here).
+# --gp-version is the Cloudberry release. Do not treat the base version as
+# the release version. EXPECTED_GP_VERSION and EXPECTED_GP_BUILD are optional
+# and, when set, must appear in the --gp-version line.
+POSTGRES_BIN="${INSTALL_PREFIX}/bin/postgres"
+if [[ ! -x "$POSTGRES_BIN" ]]; then
+  log "ERROR: postgres executable not found at $POSTGRES_BIN"
+  exit 1
 fi
-if [ -f "$CLOUDBERRY_ENV_LOADER" ]; then
-  source "$CLOUDBERRY_ENV_LOADER"
-  if source_cloudberry_env "$INSTALL_PREFIX"; then
-    postgres --version
-    postgres --gp-version
-  else
-    log "ERROR: Failed to load Cloudberry environment from $INSTALL_PREFIX"
-    exit 1
-  fi
-else
-  log "ERROR: cloudberry-env-loader.sh not found at $CLOUDBERRY_ENV_LOADER"
+pg_version="$("$POSTGRES_BIN" --version)"
+gp_version="$("$POSTGRES_BIN" --gp-version)"
+log "postgres --version: ${pg_version}"
+log "postgres --gp-version: ${gp_version}"
+if [[ -n "${EXPECTED_GP_VERSION:-}" && "$gp_version" != *"${EXPECTED_GP_VERSION}"* ]]; then
+  log "ERROR: --gp-version does not contain EXPECTED_GP_VERSION=${EXPECTED_GP_VERSION}"
+  exit 1
+fi
+if [[ -n "${EXPECTED_GP_BUILD:-}" && "$gp_version" != *"${EXPECTED_GP_BUILD}"* ]]; then
+  log "ERROR: --gp-version does not contain EXPECTED_GP_BUILD=${EXPECTED_GP_BUILD}"
   exit 1
 fi
 
