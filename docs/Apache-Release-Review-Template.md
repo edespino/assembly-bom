@@ -88,6 +88,39 @@
 - [ ] No git repository required for basic build
 - [ ] Build instructions are clear and accurate
 
+### Build host
+
+Record this when the review claims a build. It is what another reviewer needs to reproduce the run. Registered images are not public. Do not record an AMI id, an instance id, a volume id, an account id, a launch time, or an image name filter.
+
+- [ ] OS name and version
+- [ ] Architecture
+- [ ] vCPU count and instance class
+- [ ] Root disk size, and the recipe default if they differ
+- [ ] Login user
+- [ ] Java version and JAVA_HOME, when the image default would be the wrong Java
+- [ ] Go version and path, if the build uses Go
+- [ ] Install prefix, if the build installs
+- [ ] AMI recipe: public URL of the Packer recipe directory
+- [ ] Packages installed after launch because the recipe did not contain them, and why
+
+**AMI recipe:**
+```
+[https://github.com/OWNER/REPO/tree/REF/path/to/packer/recipe]
+```
+
+**Host observed:**
+```
+OS:
+Architecture:
+vCPU and class:
+Root disk:
+Login user:
+Java:
+Go:
+Install prefix:
+Installed after launch:
+```
+
 **Build Command Used:**
 ```bash
 [Command]
