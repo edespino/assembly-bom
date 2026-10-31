@@ -162,6 +162,29 @@ products:
             - verify-staged
             - check-built-versions
 
+        # Apache OzHera. A new candidate replaces this env block.
+        # Do not reimplement the checks as scratch scripts.
+        - name: ozhera
+          env:
+            RELEASE_VERSION: "2.2.7"
+            RELEASE_CANDIDATE: "rc3"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/ozhera/2.2.7-incubating-rc3"
+            KEYS_URL: "https://downloads.apache.org/incubator/ozhera/KEYS"
+            SOURCE_REPO: "https://github.com/apache/ozhera.git"
+            SOURCE_TAG: "v2.2.7-incubating-rc3"
+          steps:
+            - apache-require-source-identity
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-compare-to-tag
+            - prepare
+            - apache-validate-release-structure
+            - apache-validate-compliance
+            - apache-rat
+            - apache-review-license-compliance
+            - build
+
+
       # Build tool dependencies
       dependencies:
         - name: sbt
