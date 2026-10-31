@@ -55,12 +55,42 @@ fi
 
 mkdir -p "$out"
 rm -rf "$clone"
-git clone --depth 1 --branch "$SOURCE_TAG" "$SOURCE_REPO" "$clone"
+if [[ "$SOURCE_TAG" =~ ^[0-9a-fA-F]{40}$ ]]; then
+  mkdir -p "$clone"
+  git -C "$clone" init -q
+  git -C "$clone" remote add origin "$SOURCE_REPO"
+  git -C "$clone" fetch --depth 1 origin "$SOURCE_TAG"
+  git -C "$clone" checkout --detach FETCH_HEAD
+else
+  git clone --depth 1 --branch "$SOURCE_TAG" "$SOURCE_REPO" "$clone"
+fi
 echo "[compare-to-tag] CLONE_HEAD: $(git -C "$clone" rev-parse HEAD)"
 
 list_files() {
   local root=$1
-  (cd "$root" && find . -type f ! -path './.git/*' ! -name '.git' | sed 's|^\./||' | sort)
+  local exclude_git=$2
+  (
+    cd "$root" || exit 1
+    if [[ "$exclude_git" == yes ]]; then
+      find . -type f ! -path './.git/*' ! -name '.git'
+    else
+      find . -type f
+    fi | sed 's|^\./||' | sort
+  )
+}
+
+list_links() {
+  local root=$1
+  local exclude_git=$2
+  (
+    cd "$root" || exit 1
+    find . -type l -print | sed 's|^\./||' | while IFS= read -r rel; do
+      if [[ "$exclude_git" == yes && ( "$rel" == ".git" || "$rel" == .git/* ) ]]; then
+        continue
+      fi
+      printf '%s\t%s\n' "$rel" "$(readlink "$rel")"
+    done | sort
+  )
 }
 
 archive_only_allowed() {
@@ -89,26 +119,23 @@ tag_only_class() {
   echo OTHER
 }
 
-has_nul() {
-  local orig stripped
-  orig=$(wc -c < "$1" | tr -d ' ')
-  stripped=$(tr -d '\000' < "$1" | wc -c | tr -d ' ')
-  [[ "$orig" != "$stripped" ]]
-}
-
 crlf_only() {
-  local a=$1 b=$2
-  if has_nul "$a" || has_nul "$b"; then
-    return 1
-  fi
-  cmp -s <(tr -d '\r' < "$a") <(tr -d '\r' < "$b")
+  python3 - "$1" "$2" << 'PY'
+import sys
+def norm(path):
+    data = open(path, "rb").read()
+    if b"\0" in data:
+        sys.exit(2)
+    return data.replace(b"\r\n", b"\n")
+sys.exit(0 if norm(sys.argv[1]) == norm(sys.argv[2]) else 1)
+PY
 }
 
 archive_list=$(mktemp)
 tag_list=$(mktemp)
 trap 'rm -f "$archive_list" "$tag_list"' EXIT
-list_files "$tree" > "$archive_list"
-list_files "$clone" > "$tag_list"
+list_files "$tree" no > "$archive_list"
+list_files "$clone" yes > "$tag_list"
 
 mapfile -t only_archive_files < <(comm -23 "$archive_list" "$tag_list")
 mapfile -t only_tag_files < <(comm -13 "$archive_list" "$tag_list")
@@ -131,6 +158,26 @@ fi
 echo "[compare-to-tag] ONLY_ARCHIVE: ${#only_archive_files[@]}"
 echo "[compare-to-tag] ONLY_ARCHIVE_ALLOWLIST: $allowed"
 echo "[compare-to-tag] ONLY_ARCHIVE_UNEXPECTED: $unexpected"
+
+archive_links=$(mktemp)
+tag_links=$(mktemp)
+trap 'rm -f "$archive_list" "$tag_list" "$archive_links" "$tag_links"' EXIT
+list_links "$tree" no > "$archive_links"
+list_links "$clone" yes > "$tag_links"
+link_unexpected=0
+while IFS= read -r row; do
+  [[ -z "$row" ]] && continue
+  link_unexpected=$((link_unexpected + 1))
+  if [[ "$link_unexpected" -le 20 ]]; then
+    echo "[compare-to-tag] LINK_UNEXPECTED: $row"
+  fi
+done < <(comm -23 "$archive_links" "$tag_links")
+while IFS= read -r row; do
+  [[ -z "$row" ]] && continue
+  echo "[compare-to-tag] LINK_ONLY_TAG: $row"
+done < <(comm -13 "$archive_links" "$tag_links")
+echo "[compare-to-tag] LINK_UNEXPECTED: $link_unexpected"
+unexpected=$((unexpected + link_unexpected))
 
 vcs_only=0
 export_only=0
