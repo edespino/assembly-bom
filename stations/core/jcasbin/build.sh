@@ -7,6 +7,10 @@ set -euo pipefail
 # does not ship.
 
 NAME="${NAME:?Missing NAME environment variable}"
+if [[ "$NAME" != "jcasbin" ]]; then
+  echo "[jcasbin-build] ERROR: this step is jcasbin-only (NAME=${NAME})" >&2
+  exit 1
+fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 COMPONENT_DIR="$PARTS_DIR/$NAME"
 RELEASE_VERSION="${RELEASE_VERSION:?Missing RELEASE_VERSION}"

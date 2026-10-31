@@ -62,6 +62,10 @@ print("MISSING" if not match else match.group(1).replace(" ", "")[-8:].upper())
     fail=1
   fi
 done
+if [[ "$fail" -ne 0 ]]; then
+  echo "[jcasbin-staged] RESULT: FAIL"
+  exit 1
+fi
 
 mapfile -t TREES < <(find "$COMPONENT_DIR" -mindepth 1 -maxdepth 1 -type d | sort)
 TREE=""
@@ -121,11 +125,17 @@ for name in sorted(os.listdir(stage)):
         continue
     built = os.path.join(built_root, name)
     if not os.path.isfile(built):
-        print("[jcasbin-staged] WARN: no local build of %s" % name)
-        warn = True
+        print("[jcasbin-staged] FAIL: no local build of %s" % name)
+        fail = True
         continue
     b = load(built)
     s = load(os.path.join(stage, name))
+    only_built = sorted(set(b) - set(s))
+    only_staged = sorted(set(s) - set(b))
+    if only_built or only_staged:
+        print("[jcasbin-staged] FAIL: jar entry set differs %s only_built=%s only_staged=%s" % (name, len(only_built), len(only_staged)))
+        fail = True
+        continue
     raw = 0
     payload = 0
     for key in sorted(set(b) & set(s)):
