@@ -130,6 +130,38 @@ products:
             - build
             - apache-validate-build-artifacts
 
+        # Apache Casbin JCasbin. A new candidate replaces this env block.
+        # Do not reimplement the checks as scratch scripts.
+        - name: jcasbin
+          env:
+            RELEASE_VERSION: "1.100.0"
+            RELEASE_CANDIDATE: "rc5"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/casbin/jcasbin-1.100.0-incubating-rc5"
+            KEYS_URL: "https://downloads.apache.org/incubator/casbin/KEYS"
+            RELEASE_COMMIT: "38766ce5c270d53a83544886a204693e575b08fe"
+            SOURCE_REPO: "https://github.com/apache/casbin-jcasbin.git"
+            SOURCE_TAG: "v1.100.0-rc5"
+            CONFORMANCE_COMMIT: "c35c93d29063b8bc3bc2ef30b09943d344a289f4"
+            CONFORMANCE_REPO: "https://github.com/apache/casbin.git"
+            STAGING_URL: "https://repository.apache.org/content/repositories/orgapachecasbin-1006/org/apache/casbin/jcasbin/1.100.0"
+            STAGING_ARTIFACTS: "jcasbin-1.100.0.jar jcasbin-1.100.0-sources.jar jcasbin-1.100.0-javadoc.jar jcasbin-1.100.0.pom"
+            SIGNING_KEY_SUFFIX: "96E22C88"
+          steps:
+            - apache-require-source-identity
+            - prepare
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - apache-compare-to-tag
+            - apache-validate-release-structure
+            - apache-validate-compliance
+            - apache-rat
+            - apache-review-license-compliance
+            - compare-source-archives
+            - compare-to-commit
+            - build
+            - verify-staged
+            - check-built-versions
+
         # Apache OzHera. A new candidate replaces this env block.
         # Do not reimplement the checks as scratch scripts.
         - name: ozhera
@@ -151,6 +183,7 @@ products:
             - apache-rat
             - apache-review-license-compliance
             - build
+
 
       # Build tool dependencies
       dependencies:
