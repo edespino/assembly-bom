@@ -45,8 +45,14 @@ if ! source_cloudberry_env /usr/local/cloudberry; then
   exit 1
 fi
 
-export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
-log "BLDWRAP_POSTGRES_CONF_ADDONS set to: $BLDWRAP_POSTGRES_CONF_ADDONS"
+# Default leaves fsync at the server default (on).
+# ./assemble.sh --fsync-off sets FSYNC_OFF=1 for the fast demo cluster.
+if [[ "${FSYNC_OFF:-0}" == "1" ]]; then
+  export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
+  log "BLDWRAP_POSTGRES_CONF_ADDONS set to: $BLDWRAP_POSTGRES_CONF_ADDONS"
+else
+  log "fsync left on (pass --fsync-off to disable it on the demo cluster)"
+fi
 
 log "Running: make create-demo-cluster"
 make create-demo-cluster
