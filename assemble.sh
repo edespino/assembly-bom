@@ -37,7 +37,7 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 OPTIONS=b:c:s:t:hlrdfgxGSECDTB
-LONGOPTS=bom-file:,component:,steps:,test-config:,help,list,run,dry-run,force,debug,debug-extensions,list-boms
+LONGOPTS=bom-file:,component:,steps:,test-config:,help,list,run,dry-run,force,debug,debug-extensions,fsync-off,list-boms
 
 PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
@@ -51,6 +51,7 @@ DO_DRY_RUN=false
 FORCE_RESET=false
 DEBUG_BUILD=false
 DEBUG_EXTENSIONS_FLAG=false
+FSYNC_OFF_FLAG=false
 
 SHOW_LIST=false
 SHOW_BOMS=false
@@ -87,6 +88,7 @@ while true; do
     -d|--dry-run) DO_DRY_RUN=true; shift ;;
     -g|--debug) DEBUG_BUILD=true; shift ;;
     -x|--debug-extensions) DEBUG_EXTENSIONS_FLAG=true; shift ;;
+    --fsync-off) FSYNC_OFF_FLAG=true; shift ;;
     -h|--help)
       echo "Usage: $0 [--run] [--list] [--dry-run] [-b <file>] [-c <names>] [-s <steps>] [-f]"
       echo ""
@@ -107,6 +109,7 @@ while true; do
       echo "  -d, --dry-run           Show build order only"
       echo "  -g, --debug             Enable debug build (CFLAGS=\"-O0 -g3 -ggdb3 -fno-omit-frame-pointer -fno-inline -Wno-suggest-attribute=format\")"
       echo "  -x, --debug-extensions  Enable Cloudberry debug extensions (DEBUG_EXTENSIONS=1)"
+      echo "  --fsync-off             Set fsync=off on the demo cluster (default: fsync on)"
       echo "  -h, --help              Show this help message"
       exit 0
       ;;
@@ -383,6 +386,11 @@ for LAYER in dependencies core extensions utilities components; do
     if [[ "$DEBUG_EXTENSIONS_FLAG" == true ]]; then
       export DEBUG_EXTENSIONS=1
       echo "[assemble]     DEBUG: DEBUG_EXTENSIONS=1"
+    fi
+
+    if [[ "$FSYNC_OFF_FLAG" == true ]]; then
+      export FSYNC_OFF=1
+      echo "[assemble]     FSYNC_OFF=1"
     fi
 
     STEP_TIMINGS=()
