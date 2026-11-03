@@ -26,6 +26,7 @@ products:
             --with-perl
             --with-pgport=5432
             --with-python
+            --with-pythonsrc-ext
             --with-ssl=openssl
             --with-uuid=e2fs
             --with-zstd
