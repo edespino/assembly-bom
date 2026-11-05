@@ -95,5 +95,43 @@ else
 fi
 
 echo "[seata-prepare] Image default Java is unchanged."
+
+EYE_HOME="${HOME}/opt/skywalking-license-eye-0.9.0"
+EYE_BIN="$EYE_HOME/bin/linux/license-eye"
+if [[ ! -x "$EYE_BIN" ]]; then
+  EYE_BIN=$(find "$EYE_HOME" -type f -name 'license-eye' -perm -111 2>/dev/null | head -1 || true)
+fi
+if [[ -n "${EYE_BIN:-}" && -x "$EYE_BIN" ]]; then
+  echo "[seata-prepare] license-eye already present: $EYE_BIN"
+else
+  echo "[seata-prepare] Installing skywalking-license-eye 0.9.0. The image does not have it."
+  echo "[seata-prepare] The project header check is license-eye with .licenserc.yaml, not mvn apache-rat:check."
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+  url="https://github.com/apache/skywalking-eyes/releases/download/v0.9.0/skywalking-license-eye-0.9.0-bin.tgz"
+  curl -fsSL -o "$work/eye.tgz" "$url"
+  curl -fsSL -o "$work/eye.tgz.sha512" "${url}.sha512"
+  published=$(awk '{print $1}' "$work/eye.tgz.sha512")
+  actual=$(sha512sum "$work/eye.tgz" | awk '{print $1}')
+  expect="eb601818ff2cf8d3d4bda7551d5e6e113f799045411b6c52c4a9120cbc259b966498fcbf4778ded252364bed6a1ca1c5d59b1055e25589f74163131913f242b4"
+  if [[ "$actual" != "$published" || "$actual" != "$expect" ]]; then
+    echo "[seata-prepare] ERROR: license-eye SHA-512 mismatch"
+    exit 1
+  fi
+  echo "[seata-prepare] SHA-512 matched the published file and the pinned digest"
+  mkdir -p "$EYE_HOME"
+  tar -xzf "$work/eye.tgz" -C "$EYE_HOME"
+  EYE_BIN=$(find "$EYE_HOME" -type f -name 'license-eye' | head -1 || true)
+  if [[ -z "$EYE_BIN" ]]; then
+    echo "[seata-prepare] ERROR: license-eye binary not found in the archive"
+    find "$EYE_HOME" -maxdepth 3 -type f | head -40
+    exit 1
+  fi
+  chmod +x "$EYE_BIN"
+  echo "[seata-prepare] Installed after launch: skywalking-license-eye 0.9.0"
+fi
+ln -sfn "$EYE_BIN" "${HOME}/opt/license-eye"
+echo "[seata-prepare] license-eye: $("${HOME}/opt/license-eye" --version 2>/dev/null || "${HOME}/opt/license-eye" version || true)"
+
 echo "[seata-prepare] RESULT: PASS"
 exit 0

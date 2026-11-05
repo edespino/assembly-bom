@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Seata RAT. The project pom may declare the plugin. Set Java 17 and Maven 3.9
-# so the image default Java 8 and Maven 3.6.3 do not launch the plugin.
-# Then run the generic station, which selects the one extracted source tree.
+# Seata header check. The tree has pom.xml, but it does not declare
+# apache-rat-plugin. mvn apache-rat:check resolves the inherited Apache
+# parent plugin 0.12, which does not read .licenserc.yaml. That is not
+# the project's header gate. The project runs skywalking-eyes against
+# .licenserc.yaml. This step runs that check and counts compiled suffixes
+# in the source tree before the build.
 set -euo pipefail
 
 NAME="${NAME:?Missing NAME environment variable}"
@@ -10,17 +13,52 @@ if [[ "$NAME" != "seata" ]]; then
   exit 1
 fi
 
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
-export PATH="${HOME}/opt/apache-maven-3.9.16/bin:${JAVA_HOME}/bin:${PATH}"
-if [[ ! -x "$JAVA_HOME/bin/java" || ! -x "${HOME}/opt/apache-maven-3.9.16/bin/mvn" ]]; then
-  echo "[seata-rat] ERROR: prepare did not install Java 17 and Maven 3.9.16"
+PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
+COMPONENT_DIR="$PARTS_DIR/$NAME"
+mapfile -t trees < <(find "$COMPONENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' | sort)
+if [[ ${#trees[@]} -ne 1 ]]; then
+  echo "[seata-rat] ERROR: expected one extracted tree, found ${#trees[@]}"
+  exit 1
+fi
+tree="${trees[0]}"
+eye="${HOME}/opt/license-eye"
+if [[ ! -x "$eye" ]]; then
+  echo "[seata-rat] ERROR: license-eye is not installed. Run prepare first."
   exit 1
 fi
 
-echo "[seata-rat] JAVA_HOME: $JAVA_HOME"
-echo "[seata-rat] $($JAVA_HOME/bin/java -version 2>&1 | head -1)"
-echo "[seata-rat] $(mvn -version | head -1)"
-echo "[seata-rat] RAT 0.18 launches on Java 17. The compile stays on JDK 8."
+echo "[seata-rat] Tree: $tree"
+echo "[seata-rat] license-eye: $eye"
+echo "[seata-rat] Config: .licenserc.yaml"
+echo "[seata-rat] This is the project header check. It is not mvn apache-rat:check."
 
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-exec bash "$script_dir/../../generic/apache-rat.sh"
+fail=0
+if [[ ! -f "$tree/.licenserc.yaml" ]]; then
+  echo "[seata-rat] ERROR: .licenserc.yaml is not in the extracted tree"
+  exit 1
+fi
+set +e
+(cd "$tree" && "$eye" header check -c .licenserc.yaml)
+eye_rc=$?
+set -e
+echo "[seata-rat] LICENSE_EYE_EXIT: $eye_rc"
+if [[ "$eye_rc" -ne 0 ]]; then
+  fail=1
+fi
+
+echo "[seata-rat] Compiled suffixes in the source tree, before the build:"
+mapfile -t compiled < <(find "$tree" -type f \( -name '*.class' -o -name '*.jar' -o -name '*.so' -o -name '*.o' -o -name '*.a' -o -name '*.exe' -o -name '*.dll' \) | sort)
+echo "[seata-rat] COMPILED_COUNT: ${#compiled[@]}"
+if [[ ${#compiled[@]} -gt 0 ]]; then
+  printf '%s\n' "${compiled[@]#$tree/}" | head -20 | sed 's/^/[seata-rat] COMPILED: /'
+  fail=1
+else
+  echo "[seata-rat] No compiled binaries in the source tree."
+fi
+
+if [[ "$fail" -ne 0 ]]; then
+  echo "[seata-rat] RESULT: FAIL"
+  exit 1
+fi
+echo "[seata-rat] RESULT: PASS"
+exit 0
