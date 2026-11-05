@@ -49,7 +49,11 @@ for legal in LICENSE NOTICE DISCLAIMER; do
 done
 
 echo "[seata-review-binary] Compiled suffixes in the binary distribution are expected. They are not the source-archive binary line."
-find "$tree" -type f \( -name '*.jar' -o -name '*.class' -o -name '*.so' -o -name '*.exe' \) | sed 's|^'"$tree"'/||' | sort | head -40 | sed 's/^/[seata-review-binary] jar-or-binary: /'
+set +o pipefail
+find "$tree" -type f \( -name '*.jar' -o -name '*.class' -o -name '*.so' -o -name '*.exe' \) | sed "s|^$tree/||" | sort | head -20 | sed 's/^/[seata-review-binary] jar-or-binary: /' || true
+set -o pipefail
+jar_count=$(find "$tree" -type f -name '*.jar' | wc -l | tr -d ' ')
+echo "[seata-review-binary] JAR_COUNT: $jar_count"
 
 if [[ "$fail" -ne 0 ]]; then
   echo "[seata-review-binary] RESULT: FAIL"
