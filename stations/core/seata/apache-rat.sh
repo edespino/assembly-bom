@@ -48,28 +48,32 @@ log="$PARTS_DIR/review-output/$NAME/rat-0.18.log"
 set +e
 (
   cd "$tree"
-  mvn -B -ntp org.apache.rat:apache-rat-plugin:0.18:check
+  mvn -B -ntp -fn org.apache.rat:apache-rat-plugin:0.18:check
 ) 2>&1 | tee "$log"
 rat_rc=${PIPESTATUS[0]}
 set -e
 echo "[seata-rat] RAT_MAVEN_EXIT: $rat_rc"
 grep -E 'Rat check: Summary|Unapproved:' "$log" | sed 's/^/[seata-rat] /' || true
 
-report=$(find "$tree" -path '*/target/rat.txt' -print | head -1 || true)
-if [[ -z "$report" || ! -f "$report" ]]; then
+reports=$(find "$tree" -path '*/target/rat.txt' -print | sort)
+if [[ -z "$reports" ]]; then
   echo "[seata-rat] ERROR: RAT did not write a report"
   exit 1
 fi
-echo "[seata-rat] Report: $report"
-grep -E '^[[:space:]]*(Notes|Binaries|Archives|Standards|Unapproved):' "$report" | sed 's/^/[seata-rat] /'
-echo "[seata-rat] Unapproved files:"
-awk '
-  $0 ~ /Unapproved licenses:/ {grab=1; next}
-  grab && $0 ~ /^[0-9]+ Unknown Licenses/ {exit}
-  grab && $0 ~ /^!?\// {print}
-' "$report" | head -40 | sed 's/^/[seata-rat] /'
-
-if [[ "$rat_rc" -ne 0 ]]; then
+unapproved_total=0
+while IFS= read -r report; do
+  echo "[seata-rat] Report: $report"
+  grep -E '^[[:space:]]*! Unapproved:' "$report" | sed 's/^/[seata-rat] /' || true
+  count=$(awk '/! Unapproved:/ {print $3; exit} /^[[:space:]]*Unapproved:/ {print $2; exit}' "$report")
+  unapproved_total=$((unapproved_total + ${count:-0}))
+  awk '
+    $0 ~ /Files with unapproved licenses/ {grab=1; next}
+    grab && $0 ~ /Detail/ {exit}
+    grab && $0 ~ /^  \// {print}
+  ' "$report" | sed 's/^/[seata-rat] /'
+done <<< "$reports"
+echo "[seata-rat] UNAPPROVED_TOTAL: $unapproved_total"
+if [[ "$unapproved_total" -ne 0 ]]; then
   echo "[seata-rat] RESULT: FAIL"
   exit 1
 fi
