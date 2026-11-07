@@ -73,9 +73,13 @@ if [[ -n "$compiled" ]]; then
 fi
 echo "[amoro-rat] COMPILED_SUFFIX_COUNT: $compiled_count"
 
-mapfile -t preexisting < <(find "$tree" -path '*/target/*' -print)
+# Match names inside the extract. An absolute -path match also hits a
+# PARTS_DIR that contains a target component. A symlink named target does
+# not match -path '*/target/*' unless find follows it.
+mapfile -t preexisting < <(cd "$tree" && find . \( -name target -o -type l \) -print)
 if [[ ${#preexisting[@]} -ne 0 ]]; then
-  echo "[amoro-rat] ERROR: extracted tree already contains target/. That is not this run's report."
+  echo "[amoro-rat] ERROR: extracted tree contains a target entry or a symlink."
+  printf '%s\n' "${preexisting[@]}" | head -20 | sed 's/^/[amoro-rat] /'
   exit 1
 fi
 
@@ -91,17 +95,18 @@ set -e
 echo "[amoro-rat] RAT_MAVEN_EXIT: $rat_rc"
 grep -E '^[[:space:]]*Rat check: Summary|^[[:space:]]*! Unapproved:|^[[:space:]]*Unapproved:|^[[:space:]]*[0-9]+ Unknown Licenses|^[[:space:]]*Unknown Licenses:' "$log" | sed 's/^/[amoro-rat] /' || true
 
-mapfile -t reports < <(find "$tree" -path '*/target/rat.txt' | sort)
 root_report="$tree/target/rat.txt"
 if [[ ! -f "$root_report" ]]; then
   echo "[amoro-rat] ERROR: root RAT report missing: $root_report"
   echo "[amoro-rat] A child target/rat.txt is not the reactor report. -fn can exit 0 anyway."
   exit 1
 fi
-if [[ ${#reports[@]} -eq 0 ]]; then
-  echo "[amoro-rat] ERROR: RAT did not write a report"
-  exit 1
-fi
+reports=("$root_report")
+while IFS= read -r extra; do
+  extra_abs="$tree/${extra#./}"
+  [[ "$extra_abs" == "$root_report" ]] && continue
+  reports+=("$extra_abs")
+done < <(cd "$tree" && find . -path '*/target/rat.txt' -print | sort)
 # -fn makes Maven exit 0 even when RAT fails. The report is the gate.
 # Plugin 0.15 writes "N Unknown Licenses". Plugin 0.18 writes "Unapproved:".
 # A report with neither line is a failure, not a zero.
