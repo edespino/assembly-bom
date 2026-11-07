@@ -35,10 +35,16 @@ if [[ ${#trees[@]} -ne 1 ]]; then
 fi
 tree="${trees[0]}"
 echo "[seata-review-binary] Tree: $tree"
+fail=0
+case "$(basename "$tree")" in
+  *incubating*) echo "[seata-review-binary] incubating in directory name: $(basename "$tree")" ;;
+  *)
+    echo "[seata-review-binary] ERROR: directory name lacks incubating: $(basename "$tree")"
+    fail=1
+    ;;
+esac
 echo "[seata-review-binary] Top level:"
 ls -la "$tree" | sed 's/^/[seata-review-binary]   /'
-
-fail=0
 for legal in LICENSE NOTICE DISCLAIMER; do
   if [[ -f "$tree/$legal" ]]; then
     echo "[seata-review-binary] present: $legal"

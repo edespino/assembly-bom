@@ -96,32 +96,6 @@ fi
 
 echo "[seata-prepare] Image default Java is unchanged."
 
-EYE_BIN="${HOME}/opt/bin/license-eye"
-if [[ -x "$EYE_BIN" ]] && file "$EYE_BIN" | grep -q 'x86-64'; then
-  echo "[seata-prepare] license-eye already present: $EYE_BIN"
-else
-  echo "[seata-prepare] Building skywalking-eyes v0.9.0 with the image Go."
-  echo "[seata-prepare] The published linux binary in the 0.9.0 bin tarball is aarch64. This host is x86_64."
-  echo "[seata-prepare] The project header check is license-eye with .licenserc.yaml, not mvn apache-rat:check."
-  if [[ ! -x /opt/go/bin/go ]]; then
-    echo "[seata-prepare] ERROR: image Go is not at /opt/go/bin/go"
-    exit 1
-  fi
-  mkdir -p "${HOME}/opt/bin"
-  GOBIN="${HOME}/opt/bin" /opt/go/bin/go install github.com/apache/skywalking-eyes/cmd/license-eye@v0.9.0
-  if [[ ! -x "$EYE_BIN" ]]; then
-    echo "[seata-prepare] ERROR: go install did not create $EYE_BIN"
-    exit 1
-  fi
-  echo "[seata-prepare] Installed after launch: license-eye v0.9.0 via go install"
-fi
-if ! file "$EYE_BIN" | grep -q 'x86-64'; then
-  echo "[seata-prepare] ERROR: license-eye is not an x86-64 executable"
-  file "$EYE_BIN"
-  exit 1
-fi
-ln -sfn "$EYE_BIN" "${HOME}/opt/license-eye"
-echo "[seata-prepare] license-eye: $(file "$EYE_BIN")"
-
+echo "[seata-prepare] Header check is apache-rat-plugin 0.18. license-eye is not used."
 echo "[seata-prepare] RESULT: PASS"
 exit 0
