@@ -83,17 +83,34 @@ set +e
 rat_rc=${PIPESTATUS[0]}
 set -e
 echo "[amoro-rat] RAT_MAVEN_EXIT: $rat_rc"
-grep -E '^[[:space:]]*Rat check: Summary|^[[:space:]]*! Unapproved:|^[[:space:]]*Unapproved:' "$log" | sed 's/^/[amoro-rat] /' || true
+grep -E '^[[:space:]]*Rat check: Summary|^[[:space:]]*! Unapproved:|^[[:space:]]*Unapproved:|^[[:space:]]*[0-9]+ Unknown Licenses|^[[:space:]]*Unknown Licenses:' "$log" | sed 's/^/[amoro-rat] /' || true
 
 mapfile -t reports < <(find "$tree" -path '*/target/rat.txt' | sort)
 if [[ ${#reports[@]} -eq 0 ]]; then
   echo "[amoro-rat] ERROR: RAT did not write a report"
   exit 1
 fi
+# -fn makes Maven exit 0 even when RAT fails. The report is the gate.
+# Plugin 0.15 writes "N Unknown Licenses". Plugin 0.18 writes "Unapproved:".
+# A report with neither line is a failure, not a zero.
 unapproved_total=0
 for report in "${reports[@]}"; do
-  count=$(awk '/! Unapproved:/ {print $3; exit} /^[[:space:]]*Unapproved:/ {print $2; exit}' "$report")
-  unapproved_total=$((unapproved_total + ${count:-0}))
+  set +e
+  count=$(awk '
+    /! Unapproved:/ { print $3; found=1; exit }
+    /^[[:space:]]*Unapproved:/ { print $2; found=1; exit }
+    /^[[:space:]]*Unknown Licenses:[[:space:]]*[0-9]+/ { print $3; found=1; exit }
+    /^[[:space:]]*[0-9]+ Unknown Licenses/ { print $1; found=1; exit }
+    END { if (!found) exit 2 }
+  ' "$report")
+  parse_rc=$?
+  set -e
+  if [[ "$parse_rc" -ne 0 || ! "$count" =~ ^[0-9]+$ ]]; then
+    echo "[amoro-rat] ERROR: unrecognized RAT summary in $report"
+    exit 1
+  fi
+  echo "[amoro-rat] REPORT_COUNT: $count $report"
+  unapproved_total=$((unapproved_total + count))
 done
 echo "[amoro-rat] RAT_REPORTS: ${#reports[@]}"
 echo "[amoro-rat] UNAPPROVED_TOTAL: $unapproved_total"

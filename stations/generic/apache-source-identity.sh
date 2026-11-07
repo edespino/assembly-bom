@@ -62,6 +62,40 @@ apache_require_source_identity() {
   fi
 
   echo "[source-identity] IDENTITY_RESOLVED: $resolved"
+
+  # IDENTITY_RESOLVED is the first ls-remote line. For an annotated tag
+  # that is the tag object, not the commit. When the component sets
+  # RELEASE_COMMIT, require the peeled commit to be that SHA. A component
+  # that does not set it is unchanged.
+  if [[ -n "${RELEASE_COMMIT:-}" ]]; then
+    if [[ ! "$RELEASE_COMMIT" =~ ^[0-9a-fA-F]{40}$ ]]; then
+      echo "[source-identity] ERROR: RELEASE_COMMIT is not a full SHA. This test will not start." >&2
+      return 1
+    fi
+    local peeled="" line sha ref
+    if [[ "$tag" =~ ^[0-9a-fA-F]{40}$ ]]; then
+      peeled=$tag
+    else
+      while IFS= read -r line; do
+        sha=${line%%[[:space:]]*}
+        ref=${line#*[[:space:]]}
+        if [[ "$ref" == *'^{}' ]]; then
+          peeled=$sha
+        elif [[ -z "$peeled" ]]; then
+          peeled=$sha
+        fi
+      done < <(git ls-remote --tags "$repo" "refs/tags/${tag}")
+    fi
+    peeled=$(printf '%s' "$peeled" | tr 'A-F' 'a-f')
+    local want
+    want=$(printf '%s' "$RELEASE_COMMIT" | tr 'A-F' 'a-f')
+    if [[ -z "$peeled" || "$peeled" != "$want" ]]; then
+      echo "[source-identity] ERROR: SOURCE_TAG ${tag} peels to ${peeled:-missing}, not RELEASE_COMMIT ${want}. This test will not start." >&2
+      return 1
+    fi
+    echo "[source-identity] RELEASE_COMMIT_MATCH: $peeled"
+  fi
+
   echo "[source-identity] RESULT: PASS"
   return 0
 }
