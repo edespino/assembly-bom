@@ -359,8 +359,6 @@ for LAYER in dependencies core extensions utilities components; do
     fi
 
     echo "[assemble] Component: $NAME"
-    export NAME URL BRANCH CONFIGURE_FLAGS BUILD_FLAGS
-    export INSTALL_PREFIX="/usr/local/$NAME"
 
     ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" "${BOM_FILE}" 2>/dev/null || true)
     if [[ "$ENV_KEYS" == "null" || "$ENV_KEYS" == "[]" ]]; then
@@ -371,6 +369,8 @@ for LAYER in dependencies core extensions utilities components; do
     # JCasbin sets RELEASE_COMMIT. OzHera does not. Leaving it set makes the
     # identity check compare OzHera's tag to JCasbin's commit.
     # IFS is newline/tab, so the previous keys are an array, not a space-separated string.
+    # Run this before the orchestrator exports, or a previous INSTALL_PREFIX
+    # would unset the value just assigned for this component.
     if ((${#ASSEMBLE_COMPONENT_ENV_KEYS[@]} > 0)); then
       for PREV in "${ASSEMBLE_COMPONENT_ENV_KEYS[@]}"; do
         keep=false
@@ -386,6 +386,9 @@ for LAYER in dependencies core extensions utilities components; do
         fi
       done
     fi
+
+    export NAME URL BRANCH CONFIGURE_FLAGS BUILD_FLAGS
+    export INSTALL_PREFIX="/usr/local/$NAME"
 
     ASSEMBLE_COMPONENT_ENV_KEYS=()
     for KEY in $ENV_KEYS; do

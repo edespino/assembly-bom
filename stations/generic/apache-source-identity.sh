@@ -84,7 +84,7 @@ apache_require_source_identity() {
         elif [[ -z "$peeled" ]]; then
           peeled=$sha
         fi
-      done < <(git ls-remote --tags "$repo" "refs/tags/${tag}")
+      done < <(git ls-remote --tags "$repo" "refs/tags/${tag}" "refs/tags/${tag}^{}")
     fi
     peeled=$(printf '%s' "$peeled" | tr 'A-F' 'a-f')
     local want
