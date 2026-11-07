@@ -2,15 +2,13 @@ products:
   apache-releases:
     components:
       core:
-        # Apache Cloudberry - Incubator project, 2.2.0-rc3 vote
+        # Apache Cloudberry - Incubator project, 2.2.0-incubating release
         - name: cloudberry
           env:
             RELEASE_VERSION: "2.2.0"
-            RELEASE_CANDIDATE: "rc3"
-            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/cloudberry/2.2.0-incubating-rc3"
+            RELEASE_CANDIDATE: ""
+            RELEASE_URL: "https://downloads.apache.org/incubator/cloudberry/2.2.0-incubating"
             KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
-            EXPECTED_GP_VERSION: "2.2.0-incubating"
-            EXPECTED_GP_BUILD: "13d3c58eaa0"
           configure_flags: |
             --disable-external-fts
             --enable-gpcloud
@@ -45,6 +43,7 @@ products:
             - apache-review-license-compliance
             - apache-build-release
             - apache-check-built-versions
+            - create-demo-cluster
 
         # Apache HugeGraph - Incubator project
         - name: hugegraph

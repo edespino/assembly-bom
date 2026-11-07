@@ -38,6 +38,18 @@ fi
 
 cd "$EXT_DIR"
 
+# A git clone has the Makefile here. A release extract has it one level down.
+if [[ ! -f Makefile ]]; then
+  mapfile -t release_trees < <(find . -mindepth 1 -maxdepth 1 -type d -name 'apache-cloudberry-[0-9]*' | sort)
+  if [[ ${#release_trees[@]} -ne 1 ]]; then
+    echo "[create-demo-cluster] ERROR: no Makefile, and expected one apache-cloudberry-<version> tree"
+    printf '%s\n' "${release_trees[@]:-}"
+    exit 1
+  fi
+  cd "${release_trees[0]}"
+  log "Using extracted tree: $(pwd)"
+fi
+
 # Load Cloudberry environment with fallback
 [ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
 if ! source_cloudberry_env /usr/local/cloudberry; then
