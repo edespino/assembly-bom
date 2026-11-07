@@ -50,22 +50,29 @@ for artifact in "${artifacts[@]}"; do
     continue
   fi
   echo "[amoro-verify-signatures] Good signature: $artifact"
-  status=$(gpg --status-fd 1 --verify "$sig" "$file" 2>&1 || true)
-  if ! printf '%s\n' "$status" | grep -q '\[GNUPG:\] VALIDSIG '; then
-    echo "[amoro-verify-signatures] ERROR: no VALIDSIG status for $artifact"
-    fail=1
-    continue
-  fi
-  valid_line=$(printf '%s\n' "$status" | grep '\[GNUPG:\] VALIDSIG ' | head -1)
-  primary=$(printf '%s\n' "$valid_line" | grep -oE '[0-9A-Fa-f]{40}' | tail -1 | tr '[:lower:]' '[:upper:]')
-  suffix=${primary: -8}
-  echo "[amoro-verify-signatures] Primary key id suffix: $suffix"
-  if [[ -z "$suffix" || "$suffix" != "$want" ]]; then
-    echo "[amoro-verify-signatures] ERROR: primary key suffix does not match the vote"
+  status=$(gpg --status-fd 1 --verify "$sig" "$file" 2>/dev/null || true)
+  set +e
+  parsed=$(printf '%s\n' "$status" | awk '
+    $1=="[GNUPG:]" && ($2=="BADSIG" || $2=="ERRSIG" || $2=="EXPKEYSIG" || $2=="REVKEYSIG") { bad=1 }
+    $1=="[GNUPG:]" && $2=="VALIDSIG" { n++; fpr=$12; nf=NF }
+    END {
+      if (bad) exit 3
+      if (n!=1) exit 2
+      if (nf < 12) exit 4
+      if (fpr !~ /^[0-9A-Fa-f]{40}$/) exit 5
+      print substr(fpr, length(fpr)-7)
+    }
+  ')
+  parse_rc=$?
+  set -e
+  suffix=$(printf '%s' "$parsed" | tr '[:lower:]' '[:upper:]')
+  echo "[amoro-verify-signatures] Primary key id suffix: ${suffix:-missing}"
+  if [[ "$parse_rc" -ne 0 || "$suffix" != "$want" ]]; then
+    echo "[amoro-verify-signatures] ERROR: VALIDSIG primary suffix does not match the vote"
     echo "[amoro-verify-signatures] ERROR: got ${suffix:-missing} want $want"
     fail=1
   fi
-  if printf '%s\n' "$status" | grep -q "not certified with a trusted signature"; then
+  if printf '%s\n' "$out" | grep -q "not certified with a trusted signature"; then
     echo "[amoro-verify-signatures] Untrusted-key warning is not a bad signature."
   fi
 done

@@ -73,6 +73,12 @@ if [[ -n "$compiled" ]]; then
 fi
 echo "[amoro-rat] COMPILED_SUFFIX_COUNT: $compiled_count"
 
+mapfile -t preexisting < <(find "$tree" -path '*/target/*' -print)
+if [[ ${#preexisting[@]} -ne 0 ]]; then
+  echo "[amoro-rat] ERROR: extracted tree already contains target/. That is not this run's report."
+  exit 1
+fi
+
 log="$PARTS_DIR/review-output/$NAME/rat.log"
 rm -f "$log"
 set +e
