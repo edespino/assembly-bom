@@ -63,9 +63,11 @@ fi
 chmod +x "$tree/mvnw"
 
 echo "[amoro-rat] Compiled suffixes in the source archive, before the RAT run writes target/:"
-set +o pipefail
-compiled=$(find "$tree" -type f \( -name '*.class' -o -name '*.jar' -o -name '*.so' -o -name '*.o' -o -name '*.a' -o -name '*.exe' -o -name '*.dll' \) | sed "s|^$tree/||" | sort)
-set -o pipefail
+if ! compiled=$(cd "$tree" && find . -type f \( -name '*.class' -o -name '*.jar' -o -name '*.so' -o -name '*.o' -o -name '*.a' -o -name '*.exe' -o -name '*.dll' \) -print); then
+  echo "[amoro-rat] ERROR: find failed while counting compiled suffixes"
+  exit 1
+fi
+compiled=$(printf '%s\n' "$compiled" | sed '/^$/d; s|^\./||' | sort)
 compiled_count=0
 if [[ -n "$compiled" ]]; then
   compiled_count=$(printf '%s\n' "$compiled" | wc -l | tr -d ' ')
@@ -76,7 +78,11 @@ echo "[amoro-rat] COMPILED_SUFFIX_COUNT: $compiled_count"
 # Match names inside the extract. An absolute -path match also hits a
 # PARTS_DIR that contains a target component. A symlink named target does
 # not match -path '*/target/*' unless find follows it.
-mapfile -t preexisting < <(cd "$tree" && find . \( -name target -o -type l \) -print)
+if ! preexisting=$(cd "$tree" && find . \( -name target -o -type l \) -print); then
+  echo "[amoro-rat] ERROR: find failed while scanning the extract for target entries"
+  exit 1
+fi
+mapfile -t preexisting < <(printf '%s\n' "$preexisting" | sed '/^$/d')
 if [[ ${#preexisting[@]} -ne 0 ]]; then
   echo "[amoro-rat] ERROR: extracted tree contains a target entry or a symlink."
   printf '%s\n' "${preexisting[@]}" | head -20 | sed 's/^/[amoro-rat] /'
@@ -102,11 +108,16 @@ if [[ ! -f "$root_report" ]]; then
   exit 1
 fi
 reports=("$root_report")
+if ! child_reports=$(cd "$tree" && find . -path '*/target/rat.txt' -print); then
+  echo "[amoro-rat] ERROR: find failed while listing RAT reports"
+  exit 1
+fi
 while IFS= read -r extra; do
+  [[ -z "$extra" ]] && continue
   extra_abs="$tree/${extra#./}"
   [[ "$extra_abs" == "$root_report" ]] && continue
   reports+=("$extra_abs")
-done < <(cd "$tree" && find . -path '*/target/rat.txt' -print | sort)
+done < <(printf '%s\n' "$child_reports" | sed '/^$/d' | sort)
 # -fn makes Maven exit 0 even when RAT fails. The report is the gate.
 # Plugin 0.15 writes "N Unknown Licenses". Plugin 0.18 writes "Unapproved:".
 # A report with neither line is a failure, not a zero.
