@@ -283,6 +283,7 @@ START_TIME=$(date +%s)
 SUMMARY_LINES=()
 BUILD_FAILED=false
 FAILED_COMPONENTS=()
+ASSEMBLE_COMPONENT_ENV_KEYS=""
 
 # Function to print summary (can be called at any time)
 print_build_summary() {
@@ -362,10 +363,35 @@ for LAYER in dependencies core extensions utilities components; do
     export INSTALL_PREFIX="/usr/local/$NAME"
 
     ENV_KEYS=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env | keys | .[]" "${BOM_FILE}" 2>/dev/null || true)
+    if [[ "$ENV_KEYS" == "null" || "$ENV_KEYS" == "[]" ]]; then
+      ENV_KEYS=""
+    fi
+
+    # A key exported for the previous component must not survive into this one.
+    # JCasbin sets RELEASE_COMMIT. OzHera does not. Leaving it set makes the
+    # identity check compare OzHera's tag to JCasbin's commit.
+    if [[ -n "${ASSEMBLE_COMPONENT_ENV_KEYS}" ]]; then
+      for PREV in $ASSEMBLE_COMPONENT_ENV_KEYS; do
+        keep=false
+        for KEY in $ENV_KEYS; do
+          if [[ "$PREV" == "$KEY" ]]; then
+            keep=true
+            break
+          fi
+        done
+        if [[ "$keep" == false ]]; then
+          unset "$PREV"
+          echo "[assemble]     ENV unset: $PREV"
+        fi
+      done
+    fi
+
+    ASSEMBLE_COMPONENT_ENV_KEYS=""
     for KEY in $ENV_KEYS; do
       VALUE=$(yq e ".products.${PRODUCT}.components.${LAYER}[$i].env.$KEY" "${BOM_FILE}")
       export "$KEY"="$VALUE"
       echo "[assemble]     ENV: $KEY=$VALUE"
+      ASSEMBLE_COMPONENT_ENV_KEYS="${ASSEMBLE_COMPONENT_ENV_KEYS} ${KEY}"
     done
 
     # Export test configuration if provided
