@@ -1,0 +1,57 @@
+---
+# Main-line core build for Apache Cloudberry (Incubating).
+# Not a release-vote BOM. Do not use this file for an IPMC review.
+# Release votes stay on apache-bom.yaml. The old mixed ecosystem file
+# stays at cloudberry-bom.yaml and is still the assemble.sh default.
+#
+# Source of configure_flags: devops/build/automation/cloudberry/scripts/configure-cloudberry.sh
+# on apache/cloudberry main, commit 0d775034d769 (2026-10-31).
+# That tree is Apache Cloudberry 3.0.0-devel, PostgreSQL 16.9.
+#
+# Omitted from the script's invocation, on purpose:
+# - CONFIGURE_DEBUG_OPTS. assemble.sh -x sets DEBUG_EXTENSIONS=1, and
+#   stations/core/cloudberry/configure.sh adds those flags.
+# - The duplicate --with-openssl.
+# - --with-includes and --with-libraries. The same station script adds
+#   the Xerces paths when /opt/xerces-c exists. The script's
+#   /usr/local/xerces-c path is not what that station uses.
+# - --without-mdblocales is included because it is the script default
+#   (ENABLE_MDBLOCALES unset). configure.ac also defaults that option off.
+#
+# Meson is not this BOM. main has meson.build. CI does not call it.
+products:
+  cloudberry:
+    components:
+      core:
+        - name: cloudberry
+          url: https://github.com/apache/cloudberry.git
+          branch: main
+          configure_flags: |
+            --disable-external-fts
+            --enable-gpcloud
+            --enable-ic-proxy
+            --enable-orafce
+            --enable-orca
+            --enable-pax
+            --enable-tap-tests
+            --with-diskquota
+            --with-gp-stats-collector
+            --with-gssapi
+            --with-ldap
+            --with-libxml
+            --with-lz4
+            --with-openssl
+            --with-zstd
+            --with-pam
+            --with-perl
+            --with-pgport=5432
+            --with-python
+            --with-pythonsrc-ext
+            --with-ssl=openssl
+            --with-uuid=e2fs
+            --without-mdblocales
+          steps:
+            - clone
+            - configure
+            - build
+            - install
