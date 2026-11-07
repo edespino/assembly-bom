@@ -114,9 +114,19 @@ set +e
   cd "$tree"
   mvn -B -ntp -fn org.apache.rat:apache-rat-plugin:0.18:check
 ) 2>&1 | tee "$log"
-rat_rc=${PIPESTATUS[0]}
+pipe_status=("${PIPESTATUS[@]}")
+rat_rc=${pipe_status[0]}
+tee_rc=${pipe_status[1]}
 set -e
 echo "[seata-rat] RAT_MAVEN_EXIT: $rat_rc"
+if [[ "$tee_rc" -ne 0 ]]; then
+  echo "[seata-rat] ERROR: could not write the RAT log"
+  exit 1
+fi
+if [[ "$rat_rc" -ne 0 ]]; then
+  echo "[seata-rat] ERROR: Maven did not finish. A partial reactor is not a pass."
+  exit 1
+fi
 grep -E 'Rat check: Summary|Unapproved:' "$log" | sed 's/^/[seata-rat] /' || true
 
 root_report="$tree/target/rat.txt"
@@ -165,13 +175,26 @@ for report in "${reports[@]}"; do
 done
 echo "[seata-rat] RAT_REPORTS: ${#reports[@]}"
 echo "[seata-rat] UNAPPROVED_TOTAL: $unapproved_total"
-# -fn exits 0 after a module failure. Maven 3.9.16 prints this line only then.
-if grep -F -q 'Build failures were ignored.' "$log"; then
-  echo "[seata-rat] ERROR: Maven ignored a module failure. A missing child report is not a pass."
-  exit 1
-fi
 if [[ "$unapproved_total" -ne 0 ]]; then
   echo "[seata-rat] RESULT: FAIL"
+  exit 1
+fi
+# -fn exits 0 after a module failure. Maven 3.9.16 prints this line only then.
+set +e
+grep -F -q 'Build failures were ignored.' "$log"
+grep_rc=$?
+set -e
+if [[ "$grep_rc" -eq 2 ]]; then
+  echo "[seata-rat] ERROR: cannot read the RAT log"
+  exit 1
+fi
+if [[ "$grep_rc" -eq 0 ]]; then
+  echo "[seata-rat] ERROR: Maven reported a failed module"
+  echo "[seata-rat] RESULT: FAIL"
+  exit 1
+fi
+if [[ "$grep_rc" -ne 1 ]]; then
+  echo "[seata-rat] ERROR: unexpected grep status $grep_rc while reading the RAT log"
   exit 1
 fi
 echo "[seata-rat] RESULT: PASS"
