@@ -184,6 +184,37 @@ products:
             - apache-review-license-compliance
             - build
 
+        # Apache Amoro. A new candidate replaces this env block.
+        # The vote stages one source tar and two binary tars.
+        # Do not use apache-extract-discovered: compare-to-tag requires one source tree.
+        # Do not use apache-validate-release-structure: it treats those tars as unexpected.
+        - name: amoro
+          env:
+            RELEASE_VERSION: "0.9.0"
+            RELEASE_CANDIDATE: "rc14"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/amoro/0.9.0-incubating-RC14"
+            KEYS_URL: "https://downloads.apache.org/incubator/amoro/KEYS"
+            SOURCE_REPO: "https://github.com/apache/amoro.git"
+            SOURCE_TAG: "v0.9.0-rc14"
+            RELEASE_COMMIT: "18d12b99d5297dbd0bb4eb72517c4855d75210f6"
+            SIGNING_KEY_ID: "BE102BE7"
+            STAGING_URL: "https://repository.apache.org/content/repositories/orgapacheamoro-1093"
+          steps:
+            - prepare
+            - apache-require-source-identity
+            - apache-discover-and-verify-release
+            - verify-signatures
+            - review-release-set
+            - extract-source
+            - apache-compare-to-tag
+            - apache-validate-compliance
+            - apache-rat
+            - apache-review-license-compliance
+            - review-named-files
+            - review-binary
+            - review-staging
+            - build
+
         # Apache Seata. A new candidate replaces this env block.
         # The vote stages one source zip and one binary tar. Do not use
         # apache-extract-discovered: compare-to-tag requires one source tree.
@@ -214,7 +245,6 @@ products:
             - review-named-files
             - review-binary
             - build
-
 
       # Build tool dependencies
       dependencies:
