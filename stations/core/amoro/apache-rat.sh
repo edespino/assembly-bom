@@ -86,6 +86,12 @@ echo "[amoro-rat] RAT_MAVEN_EXIT: $rat_rc"
 grep -E '^[[:space:]]*Rat check: Summary|^[[:space:]]*! Unapproved:|^[[:space:]]*Unapproved:|^[[:space:]]*[0-9]+ Unknown Licenses|^[[:space:]]*Unknown Licenses:' "$log" | sed 's/^/[amoro-rat] /' || true
 
 mapfile -t reports < <(find "$tree" -path '*/target/rat.txt' | sort)
+root_report="$tree/target/rat.txt"
+if [[ ! -f "$root_report" ]]; then
+  echo "[amoro-rat] ERROR: root RAT report missing: $root_report"
+  echo "[amoro-rat] A child target/rat.txt is not the reactor report. -fn can exit 0 anyway."
+  exit 1
+fi
 if [[ ${#reports[@]} -eq 0 ]]; then
   echo "[amoro-rat] ERROR: RAT did not write a report"
   exit 1

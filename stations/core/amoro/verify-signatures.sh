@@ -50,31 +50,22 @@ for artifact in "${artifacts[@]}"; do
     continue
   fi
   echo "[amoro-verify-signatures] Good signature: $artifact"
-  key_line=$(printf '%s\n' "$out" | grep -E 'using (RSA|DSA|ECDSA|EDDSA|EdDSA) key' | head -1 || true)
-  key_id=$(printf '%s\n' "$key_line" | awk '{print $NF}' | tr '[:lower:]' '[:upper:]')
-  case "$key_id" in
-    *"$want") echo "[amoro-verify-signatures] Signer key id matches the vote: $want" ;;
-    *)
-      echo "[amoro-verify-signatures] ERROR: signer key id does not match the vote"
-      echo "[amoro-verify-signatures] ERROR: got $key_id want $want"
-      fail=1
-      ;;
-  esac
-  fp_line=$(printf '%s\n' "$out" | grep -F 'Primary key fingerprint:' | head -1 || true)
-  if [[ -n "$fp_line" ]]; then
-    groups=${fp_line#*:}
-    joined=$(printf '%s' "$groups" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
-    suffix=${joined: -8}
-    echo "[amoro-verify-signatures] Key id suffix: $suffix"
-    if [[ "$suffix" != "$want" ]]; then
-      echo "[amoro-verify-signatures] ERROR: fingerprint suffix does not match the vote"
-      fail=1
-    fi
-  else
-    echo "[amoro-verify-signatures] ERROR: no fingerprint line to derive the suffix"
+  status=$(gpg --status-fd 1 --verify "$sig" "$file" 2>&1 || true)
+  if ! printf '%s\n' "$status" | grep -q '\[GNUPG:\] VALIDSIG '; then
+    echo "[amoro-verify-signatures] ERROR: no VALIDSIG status for $artifact"
+    fail=1
+    continue
+  fi
+  valid_line=$(printf '%s\n' "$status" | grep '\[GNUPG:\] VALIDSIG ' | head -1)
+  primary=$(printf '%s\n' "$valid_line" | grep -oE '[0-9A-Fa-f]{40}' | tail -1 | tr '[:lower:]' '[:upper:]')
+  suffix=${primary: -8}
+  echo "[amoro-verify-signatures] Primary key id suffix: $suffix"
+  if [[ -z "$suffix" || "$suffix" != "$want" ]]; then
+    echo "[amoro-verify-signatures] ERROR: primary key suffix does not match the vote"
+    echo "[amoro-verify-signatures] ERROR: got ${suffix:-missing} want $want"
     fail=1
   fi
-  if printf '%s\n' "$out" | grep -q "not certified with a trusted signature"; then
+  if printf '%s\n' "$status" | grep -q "not certified with a trusted signature"; then
     echo "[amoro-verify-signatures] Untrusted-key warning is not a bad signature."
   fi
 done
