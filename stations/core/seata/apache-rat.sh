@@ -165,6 +165,11 @@ for report in "${reports[@]}"; do
 done
 echo "[seata-rat] RAT_REPORTS: ${#reports[@]}"
 echo "[seata-rat] UNAPPROVED_TOTAL: $unapproved_total"
+# -fn exits 0 after a module failure. Maven 3.9.16 prints this line only then.
+if grep -F -q 'Build failures were ignored.' "$log"; then
+  echo "[seata-rat] ERROR: Maven ignored a module failure. A missing child report is not a pass."
+  exit 1
+fi
 if [[ "$unapproved_total" -ne 0 ]]; then
   echo "[seata-rat] RESULT: FAIL"
   exit 1

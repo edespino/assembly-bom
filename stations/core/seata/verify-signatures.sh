@@ -57,7 +57,7 @@ for artifact in "${artifacts[@]}"; do
   status=$(gpg --status-fd 1 --verify "$sig" "$file" 2>/dev/null || true)
   set +e
   parsed=$(printf '%s\n' "$status" | awk -v nlen="${#want}" '
-    $1=="[GNUPG:]" && ($2=="BADSIG" || $2=="ERRSIG" || $2=="EXPKEYSIG" || $2=="REVKEYSIG") { bad=1 }
+    $1=="[GNUPG:]" && ($2=="BADSIG" || $2=="ERRSIG" || $2=="EXPKEYSIG" || $2=="REVKEYSIG" || $2=="EXPSIG") { bad=1 }
     $1=="[GNUPG:]" && $2=="VALIDSIG" { n++; fpr=$12; nf=NF }
     END {
       if (bad) exit 3
