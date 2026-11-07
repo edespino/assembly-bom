@@ -104,6 +104,19 @@ if [[ -n "$bad_dirs" ]]; then
   exit 1
 fi
 
+# Before any -f, grep, or chmod. Those follow symlinks and can change a
+# file outside the extract.
+if ! preexisting=$(cd "$tree" && find . \( -name target -o -type l \) -print); then
+  echo "[amoro-rat] ERROR: find failed while scanning the extract for target entries"
+  exit 1
+fi
+mapfile -t preexisting < <(printf '%s\n' "$preexisting" | sed '/^$/d')
+if [[ ${#preexisting[@]} -ne 0 ]]; then
+  echo "[amoro-rat] ERROR: extracted tree contains a target entry or a symlink."
+  printf '%s\n' "${preexisting[@]}" | head -20 | sed 's/^/[amoro-rat] /'
+  exit 1
+fi
+
 if [[ ! -f "$tree/pom.xml" || ! -f "$tree/mvnw" ]]; then
   echo "[amoro-rat] ERROR: extracted tree is missing pom.xml or mvnw"
   exit 1
@@ -126,20 +139,6 @@ if [[ -n "$compiled" ]]; then
   printf '%s\n' "$compiled" | head -20 | sed 's/^/[amoro-rat] compiled: /'
 fi
 echo "[amoro-rat] COMPILED_SUFFIX_COUNT: $compiled_count"
-
-# Match names inside the extract. An absolute -path match also hits a
-# PARTS_DIR that contains a target component. A symlink named target does
-# not match -path '*/target/*' unless find follows it.
-if ! preexisting=$(cd "$tree" && find . \( -name target -o -type l \) -print); then
-  echo "[amoro-rat] ERROR: find failed while scanning the extract for target entries"
-  exit 1
-fi
-mapfile -t preexisting < <(printf '%s\n' "$preexisting" | sed '/^$/d')
-if [[ ${#preexisting[@]} -ne 0 ]]; then
-  echo "[amoro-rat] ERROR: extracted tree contains a target entry or a symlink."
-  printf '%s\n' "${preexisting[@]}" | head -20 | sed 's/^/[amoro-rat] /'
-  exit 1
-fi
 
 log="$PARTS_DIR/review-output/$NAME/rat.log"
 rm -f "$log"
