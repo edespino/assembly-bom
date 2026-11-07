@@ -1,0 +1,21 @@
+---
+# Meson attempt for Apache Cloudberry. Not a release-vote BOM.
+# apache/cloudberry main does not have the Cloudberry Meson port. meson.build
+# there is the PostgreSQL 16 file, and it rejects -Dorca and the other
+# Cloudberry options. This file clones the open port instead:
+# tuhaihe/cloudberrydb meson-adapt at 82e8993ffd9056825d938bd6d5b83024123a180c
+# (https://github.com/apache/cloudberry/pull/1940).
+# meson-setup.sh checks that SHA out before meson setup.
+# The image must already have meson and ninja. JAVA_HOME is set in the station.
+products:
+  cloudberry:
+    components:
+      core:
+        - name: cloudberry
+          url: https://github.com/tuhaihe/cloudberrydb.git
+          branch: meson-adapt
+          steps:
+            - clone
+            - meson-setup
+            - meson-build
+            - meson-install
