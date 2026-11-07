@@ -11,11 +11,9 @@ products:
             --enable-gpcloud
             --enable-gpfdist
             --enable-ic-proxy
-            --enable-mapreduce
             --enable-orafce
             --enable-orca
             --enable-pax
-            --enable-pxf
             --enable-tap-tests
             --with-gssapi
             --with-ldap
@@ -28,9 +26,12 @@ products:
             --with-perl
             --with-pgport=5432
             --with-python
+            --with-pythonsrc-ext
             --with-ssl=openssl
             --with-uuid=e2fs
             --with-zstd
+            --with-diskquota
+            --with-gp-stats-collector
           steps:
             - clone
             - configure
