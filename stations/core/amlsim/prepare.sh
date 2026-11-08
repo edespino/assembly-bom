@@ -13,5 +13,14 @@ cd "$tree"
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
 python3 -m pip install --user 'numpy' 'networkx==1.11' 'python-dateutil' 'Faker'
+# networkx 1.11 imports fractions.gcd, removed in Python 3.9.
+python3 - << 'PY'
+import os, site
+path = os.path.join(site.getusersitepackages(), "fractions_gcd_shim.pth")
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w") as fh:
+    fh.write("import math, fractions; fractions.gcd = getattr(fractions, 'gcd', math.gcd)\n")
+print(path)
+PY
 echo "[amlsim-prepare] JAVA_HOME=$JAVA_HOME"
 echo "[amlsim-prepare] RESULT: PASS"
