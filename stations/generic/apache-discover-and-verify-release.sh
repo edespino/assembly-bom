@@ -50,6 +50,24 @@ if [[ -z "$ARTIFACTS" ]]; then
   exit 1
 fi
 
+# A shared release directory lists every artifact. ARTIFACT_MATCH is an exact
+# filename so one component does not download the rest of that directory.
+if [[ -n "${ARTIFACT_MATCH:-}" ]]; then
+  MATCHED=""
+  while IFS= read -r artifact; do
+    if [[ "$artifact" == "$ARTIFACT_MATCH" ]]; then
+      MATCHED="$artifact"
+      break
+    fi
+  done <<< "$ARTIFACTS"
+  if [[ -z "$MATCHED" ]]; then
+    echo "[discover-verify] ❌ ARTIFACT_MATCH not in the listing: $ARTIFACT_MATCH"
+    exit 1
+  fi
+  ARTIFACTS="$MATCHED"
+  echo "[discover-verify] ARTIFACT_MATCH: $ARTIFACT_MATCH"
+fi
+
 # Categorize artifacts
 SRC_ARTIFACTS=()
 BIN_ARTIFACTS=()

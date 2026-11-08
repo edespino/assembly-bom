@@ -15,6 +15,31 @@ products:
             - build
             - run
             - load
+        - name: pxf
+          env:
+            RELEASE_URL: "https://downloads.apache.org/incubator/cloudberry/2.2.0-incubating"
+            KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
+            ARTIFACT_MATCH: "apache-cloudberry-pxf-2.2.0-incubating-src.tar.gz"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - build
+            - install
+            - prepare
+            - start
+        - name: polaris
+          env:
+            RELEASE_URL: "https://downloads.apache.org/polaris/1.8.0"
+            KEYS_URL: "https://downloads.apache.org/polaris/KEYS"
+            ARTIFACT_MATCH: "apache-polaris-1.8.0.tar.gz"
+          steps:
+            - apache-discover-and-verify-release
+            - apache-extract-discovered
+            - build
+            - run
+        - name: lakehouse
+          steps:
+            - publish
         - name: superset
           url: https://github.com/apache/superset.git
           branch: "6.1.0"
