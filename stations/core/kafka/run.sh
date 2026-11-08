@@ -20,7 +20,7 @@ mkdir -p "$HOME/kafka-logs"
 if ! ss -lnt | grep -q ':9092 '; then
   cfg="$src/config/server.properties"
   cluster=$("$src/bin/kafka-storage.sh" random-uuid)
-  "$src/bin/kafka-storage.sh" format -t "$cluster" -c "$cfg" --ignore-formatted
+  "$src/bin/kafka-storage.sh" format -t "$cluster" -c "$cfg" --standalone --ignore-formatted
   "$src/bin/kafka-server-start.sh" -daemon "$cfg"
 fi
 ok=0
