@@ -18,9 +18,10 @@ if [[ ! -f "$src/bin/kafka-server-start.sh" ]]; then
 fi
 mkdir -p "$HOME/kafka-logs"
 if ! ss -lnt | grep -q ':9092 '; then
+  cfg="$src/config/server.properties"
   cluster=$("$src/bin/kafka-storage.sh" random-uuid)
-  "$src/bin/kafka-storage.sh" format -t "$cluster" -c "$src/config/kraft/server.properties" --ignore-formatted
-  "$src/bin/kafka-server-start.sh" -daemon "$src/config/kraft/server.properties"
+  "$src/bin/kafka-storage.sh" format -t "$cluster" -c "$cfg" --ignore-formatted
+  "$src/bin/kafka-server-start.sh" -daemon "$cfg"
 fi
 ok=0
 for _ in $(seq 1 30); do
