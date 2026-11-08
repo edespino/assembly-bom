@@ -15,7 +15,10 @@ SUPERSET = "http://127.0.0.1:8088"
 
 
 def run(cmd, **kwargs):
-    return subprocess.run(cmd, check=True, text=True, capture_output=True, **kwargs)
+    completed = subprocess.run(cmd, check=False, text=True, capture_output=True, **kwargs)
+    if completed.returncode != 0:
+        raise SystemExit(completed.stderr or completed.stdout or f"exit {completed.returncode}")
+    return completed
 
 
 def http(method, url, body=None, headers=None):
@@ -220,7 +223,8 @@ def main():
     psql = [
         "psql", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c",
         f"""
-        DROP EXTERNAL TABLE IF EXISTS aml.transactions_lake;
+        DROP VIEW IF EXISTS aml.history_by_kind;
+        DROP EXTERNAL TABLE IF EXISTS aml.transactions_lake CASCADE;
         CREATE EXTERNAL TABLE aml.transactions_lake (
           step bigint,
           amount float8,
