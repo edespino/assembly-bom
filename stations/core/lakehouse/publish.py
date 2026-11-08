@@ -186,6 +186,7 @@ def main():
             "token": user_token,
             "warehouse": CATALOG,
             "s3.region": "us-west-2",
+            "header.X-Iceberg-Access-Delegation": "none",
         },
     )
     try:
