@@ -12,7 +12,6 @@ tree="$PARTS_DIR/$NAME"
 cd "$tree"
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
-sudo dnf install -y -d0 graphviz graphviz-devel gcc python3-devel || true
-python3 -m pip install --user -r requirements.txt
+python3 -m pip install --user 'numpy' 'networkx==1.11' 'python-dateutil' 'Faker'
 echo "[amlsim-prepare] JAVA_HOME=$JAVA_HOME"
 echo "[amlsim-prepare] RESULT: PASS"
