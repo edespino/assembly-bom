@@ -8,9 +8,9 @@ fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 gradlew=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name gradlew | head -1)
 src=$(dirname "$gradlew")
-jar=$(find "$src/runtime/server/build" -path '*/quarkus-app/quarkus-run.jar' ! -path '*/gen/*' | head -1)
-if [[ -z "$jar" ]]; then
-  echo "[polaris-run] ERROR: quarkus-run.jar not found under $src" >&2
+jar="$src/runtime/server/build/quarkus-app/quarkus-run.jar"
+if [[ ! -f "$jar" ]]; then
+  echo "[polaris-run] ERROR: $jar not found" >&2
   exit 1
 fi
 run_home="$HOME/polaris-run"
@@ -30,7 +30,7 @@ export AWS_DEFAULT_REGION=us-west-2
 # Upstream quickstart bootstrap. Not an AWS credential.
 export POLARIS_BOOTSTRAP_CREDENTIALS='POLARIS,root,s3cr3t'
 cd "$(dirname "$jar")"
-nohup java \
+nohup "$JAVA_HOME/bin/java" \
   -Dpolaris.realm-context.realms=POLARIS \
   -Dquarkus.otel.sdk.disabled=true \
   -jar "$(basename "$jar")" \
