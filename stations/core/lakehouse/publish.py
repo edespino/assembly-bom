@@ -45,6 +45,16 @@ def token(client_id, client_secret):
         return json.load(resp)["access_token"]
 
 
+def post_ok(path, body, headers):
+    try:
+        return http("POST", BASE + path, body, headers)
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode()
+        if exc.code in (409, 400) and "already" in detail.lower():
+            return None
+        raise SystemExit(f"post_failed {exc.code} {path} {detail}")
+
+
 def role_arn():
     arn = run(["aws", "sts", "get-caller-identity", "--query", "Arn", "--output", "text"]).stdout.strip()
     # arn:aws:sts::ACCOUNT:assumed-role/ROLE/session
@@ -86,52 +96,48 @@ def main():
         else:
             raise SystemExit(f"catalog_create_failed {exc.code} {detail}")
 
-    principal = http(
-        "POST",
-        BASE + "/api/management/v1/principals",
-        {"principal": {"name": "lakehouse_user", "properties": {}}},
-        headers,
-    )
-    client_id = principal["credentials"]["clientId"]
-    client_secret = principal["credentials"]["clientSecret"]
     home = os.path.expanduser("~/polaris-run")
     os.makedirs(home, exist_ok=True)
     cred_path = os.path.join(home, "client.env")
-    with open(cred_path, "w", encoding="utf-8") as handle:
-        handle.write(f"CLIENT_ID={client_id}\nCLIENT_SECRET={client_secret}\n")
-    os.chmod(cred_path, 0o600)
-    print("principal_created")
+    try:
+        principal = http(
+            "POST",
+            BASE + "/api/management/v1/principals",
+            {"principal": {"name": "lakehouse_user", "properties": {}}},
+            headers,
+        )
+        client_id = principal["credentials"]["clientId"]
+        client_secret = principal["credentials"]["clientSecret"]
+        with open(cred_path, "w", encoding="utf-8") as handle:
+            handle.write(f"CLIENT_ID={client_id}\nCLIENT_SECRET={client_secret}\n")
+        os.chmod(cred_path, 0o600)
+        print("principal_created")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode()
+        if exc.code not in (409, 400) or not os.path.exists(cred_path):
+            raise SystemExit(f"principal_failed {exc.code} {detail}")
+        saved = {}
+        for line in open(cred_path, encoding="utf-8"):
+            key, value = line.strip().split("=", 1)
+            saved[key] = value
+        client_id = saved["CLIENT_ID"]
+        client_secret = saved["CLIENT_SECRET"]
+        print("principal_exists")
 
-    http(
-        "POST",
-        BASE + "/api/management/v1/principal-roles",
-        {"principalRole": {"name": "lakehouse_user_role", "properties": {}}},
-        headers,
-    )
-    http(
-        "PUT",
-        BASE + "/api/management/v1/principals/lakehouse_user/principal-roles",
-        {"principalRole": {"name": "lakehouse_user_role"}},
-        headers,
-    )
-    http(
-        "POST",
-        BASE + f"/api/management/v1/catalogs/{CATALOG}/catalog-roles",
-        {"catalogRole": {"name": "lakehouse_catalog_role", "properties": {}}},
-        headers,
-    )
-    http(
-        "PUT",
-        BASE + f"/api/management/v1/principal-roles/lakehouse_user_role/catalog-roles/{CATALOG}",
-        {"catalogRole": {"name": "lakehouse_catalog_role"}},
-        headers,
-    )
-    http(
-        "PUT",
-        BASE + f"/api/management/v1/catalogs/{CATALOG}/catalog-roles/lakehouse_catalog_role/grants",
-        {"type": "catalog", "privilege": "CATALOG_MANAGE_CONTENT"},
-        headers,
-    )
+    def ignore_exists(method, path, body):
+        try:
+            return http(method, BASE + path, body, headers)
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode()
+            if exc.code in (409, 400) and "already" in detail.lower():
+                return None
+            raise SystemExit(f"setup_failed {exc.code} {path} {detail}")
+
+    ignore_exists("POST", "/api/management/v1/principal-roles", {"principalRole": {"name": "lakehouse_user_role", "properties": {}}})
+    ignore_exists("PUT", "/api/management/v1/principals/lakehouse_user/principal-roles", {"principalRole": {"name": "lakehouse_user_role"}})
+    ignore_exists("POST", f"/api/management/v1/catalogs/{CATALOG}/catalog-roles", {"catalogRole": {"name": "lakehouse_catalog_role", "properties": {}}})
+    ignore_exists("PUT", f"/api/management/v1/principal-roles/lakehouse_user_role/catalog-roles/{CATALOG}", {"catalogRole": {"name": "lakehouse_catalog_role"}})
+    ignore_exists("PUT", f"/api/management/v1/catalogs/{CATALOG}/catalog-roles/lakehouse_catalog_role/grants", {"type": "catalog", "privilege": "CATALOG_MANAGE_CONTENT"})
     print("grants_ok")
 
     user_token = token(client_id, client_secret)
@@ -169,13 +175,22 @@ def main():
             raise
     schema = table.schema
     try:
-        iceberg = catalog.create_table(("aml", "transactions"), schema=schema, location=location)
+        iceberg = catalog.create_table(("aml", "transactions"), schema=schema)
     except Exception as exc:
         if "AlreadyExists" not in type(exc).__name__ and "already exists" not in str(exc).lower():
             raise
         iceberg = catalog.load_table(("aml", "transactions"))
     iceberg.append(table)
-    print("iceberg_appended", location)
+    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/history/", "--recursive"]).stdout
+    data_files = [
+        line.split()[-1]
+        for line in listed.splitlines()
+        if line.endswith(".parquet") and "/metadata/" not in line
+    ]
+    if not data_files:
+        raise SystemExit("no_parquet")
+    data_key = data_files[0].rsplit("/", 1)[0]
+    print("parquet_prefix", data_key)
 
     psql = [
         "psql", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c",
@@ -186,7 +201,7 @@ def main():
           amount float8,
           is_sar int,
           alert_id int
-        ) LOCATION ('pxf://{BUCKET}/{PREFIX}?PROFILE=s3:parquet&SERVER=lakehouse')
+        ) LOCATION ('pxf://{BUCKET}/{data_key}?PROFILE=s3:parquet&SERVER=lakehouse')
         FORMAT 'CUSTOM' (FORMATTER='pxfwritable_import');
         CREATE OR REPLACE VIEW aml.history_by_kind AS
           SELECT CASE WHEN alert_id = -1 THEN 'Ordinary' ELSE 'Planted' END AS kind,
