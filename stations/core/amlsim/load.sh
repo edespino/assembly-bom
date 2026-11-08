@@ -77,9 +77,16 @@ psql -d postgres -v ON_ERROR_STOP=1 -c "\\copy aml.tx_count FROM '$tx_count' WIT
 
 psql -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 CREATE OR REPLACE VIEW aml.alerts_by_typology AS
-  SELECT reason AS typology, count(DISTINCT alert_id) AS alerts, count(*) AS members
+  SELECT CASE reason
+    WHEN 'fan_in' THEN 'Into one'
+    WHEN 'fan_out' THEN 'Out to many'
+    WHEN 'cycle' THEN 'Comes back'
+    ELSE reason
+  END AS typology,
+  count(DISTINCT alert_id) AS alerts,
+  count(*) AS members
   FROM aml.alert_members
-  GROUP BY reason;
+  GROUP BY 1;
 CREATE OR REPLACE VIEW aml.transactions_per_day AS
   SELECT step AS day, normal, sar, normal + sar AS transactions
   FROM aml.tx_count
