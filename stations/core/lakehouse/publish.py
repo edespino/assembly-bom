@@ -70,7 +70,14 @@ def main():
         "Polaris-Realm": REALM,
         "Accept": "application/json",
     }
-    location = f"s3://{BUCKET}/{PREFIX}"
+    try:
+        http("DELETE", BASE + f"/api/management/v1/catalogs/{CATALOG}", None, headers)
+        print("catalog_replaced")
+    except urllib.error.HTTPError as exc:
+        exc.read()
+        if exc.code != 404:
+            raise
+    location = f"s3://{BUCKET}/history"
     payload = {
         "catalog": {
             "name": CATALOG,
@@ -79,9 +86,9 @@ def main():
             "properties": {"default-base-location": location},
             "storageConfigInfo": {
                 "storageType": "S3",
-                "roleArn": role_arn(),
                 "region": "us-west-2",
                 "allowedLocations": [f"s3://{BUCKET}/"],
+                "stsUnavailable": True,
                 "kmsUnavailable": True,
             },
         }
@@ -166,6 +173,7 @@ def main():
             "uri": BASE + "/api/catalog",
             "token": user_token,
             "warehouse": CATALOG,
+            "s3.region": "us-west-2",
         },
     )
     try:
