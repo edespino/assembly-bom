@@ -205,8 +205,14 @@ verify_artifact() {
     if [[ "$CHECKSUM_TYPE" == "sha256" ]]; then
       hexlen=64
     fi
-    local expected
-    expected=$(grep -oE "[0-9a-fA-F]{${hexlen}}" "$checksum" | head -1)
+    local raw expected
+    raw=$(tr -d '[:space:]' < "$checksum")
+    if [[ "$raw" == *:* ]]; then
+      expected=${raw##*:}
+    else
+      expected=$(grep -oE "[0-9a-fA-F]{${hexlen}}" "$checksum" | head -1)
+    fi
+    expected=$(printf '%s' "$expected" | tr 'A-F' 'a-f')
     if [[ -z "$expected" ]]; then
       echo "[discover-verify] ❌ No ${CHECKSUM_TYPE} digest in $checksum"
       return 1
