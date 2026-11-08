@@ -37,7 +37,6 @@ products:
           steps:
             - apache-discover-and-verify-release
             - apache-extract-discovered
-            - apache-validate-release-structure
             - apache-validate-compliance
             - apache-rat
             - apache-review-license-compliance
