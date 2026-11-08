@@ -10,7 +10,8 @@ src=$(find "$PARTS_DIR/$NAME" -maxdepth 2 -type f -name gradlew | head -1)
 src=$(dirname "$src")
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 export PATH="${JAVA_HOME}/bin:${src}/bin:${PATH}"
-if [[ ! -x "$src/bin/kafka-server-start.sh" ]]; then
+chmod +x "$src/bin/"*.sh
+if [[ ! -f "$src/bin/kafka-server-start.sh" ]]; then
   echo "[kafka-run] ERROR: broker scripts missing after jar build" >&2
   ls "$src/bin" >&2 || true
   exit 1
