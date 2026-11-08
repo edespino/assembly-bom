@@ -15,8 +15,8 @@ cd "$(dirname "$pom")"
 maven_home="$HOME/bom-parts/apache-maven-3.8.6"
 if [[ ! -x "$maven_home/bin/mvn" ]]; then
   tmp=$(mktemp -d)
-  curl -fsSL -o "$tmp/maven.tgz" https://downloads.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
-  curl -fsSL -o "$tmp/maven.tgz.sha512" https://downloads.apache.org/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz.sha512
+  curl -fsSL -o "$tmp/maven.tgz" https://archive.apache.org/dist/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz
+  curl -fsSL -o "$tmp/maven.tgz.sha512" https://archive.apache.org/dist/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz.sha512
   expected=$(tr -d '[:space:]' < "$tmp/maven.tgz.sha512" | sed 's/.*://' | tr 'A-F' 'a-f')
   actual=$(sha512sum "$tmp/maven.tgz" | awk '{print $1}')
   if [[ "$expected" != "$actual" ]]; then
