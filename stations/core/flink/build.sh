@@ -6,12 +6,13 @@ if [[ "$NAME" != "flink" ]]; then
   exit 1
 fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
-pom=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name pom.xml | head -1)
-if [[ -z "$pom" ]]; then
-  echo "[flink-build] ERROR: pom.xml not found" >&2
+root=$(find "$PARTS_DIR/$NAME" -maxdepth 2 -type d -name flink-dist | head -1)
+root=$(dirname "$root")
+if [[ ! -f "$root/pom.xml" ]]; then
+  echo "[flink-build] ERROR: Flink root pom not found" >&2
   exit 1
 fi
-cd "$(dirname "$pom")"
+cd "$root"
 maven_home="$HOME/bom-parts/apache-maven-3.8.6"
 if [[ ! -x "$maven_home/bin/mvn" ]]; then
   tmp=$(mktemp -d)
