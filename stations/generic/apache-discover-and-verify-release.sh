@@ -201,7 +201,16 @@ verify_artifact() {
   echo "[discover-verify] Verifying ${CHECKSUM_TYPE^^} checksum..."
   local checksum_cmd="${CHECKSUM_TYPE}sum"
   if command -v "$checksum_cmd" &> /dev/null; then
-    local expected=$(cat "$checksum" | awk '{print $1}')
+    local hexlen=128
+    if [[ "$CHECKSUM_TYPE" == "sha256" ]]; then
+      hexlen=64
+    fi
+    local expected
+    expected=$(grep -oE "[0-9a-fA-F]{${hexlen}}" "$checksum" | head -1)
+    if [[ -z "$expected" ]]; then
+      echo "[discover-verify] ❌ No ${CHECKSUM_TYPE} digest in $checksum"
+      return 1
+    fi
     local actual=$($checksum_cmd "$tarball" | awk '{print $1}')
 
     if [[ "$expected" == "$actual" ]]; then
