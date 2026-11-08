@@ -201,7 +201,11 @@ def main():
         if "AlreadyExists" not in type(exc).__name__ and "already exists" not in str(exc).lower():
             raise
         iceberg = catalog.load_table(("aml", "transactions"))
-    iceberg.append(table)
+    if iceberg.current_snapshot() is None:
+        iceberg.append(table)
+        print("iceberg_appended")
+    else:
+        print("iceberg_already_loaded")
     listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/history/", "--recursive"]).stdout
     data_files = [
         line.split()[-1]
@@ -218,10 +222,10 @@ def main():
         f"""
         DROP EXTERNAL TABLE IF EXISTS aml.transactions_lake;
         CREATE EXTERNAL TABLE aml.transactions_lake (
-          step int,
+          step bigint,
           amount float8,
-          is_sar int,
-          alert_id int
+          is_sar bigint,
+          alert_id bigint
         ) LOCATION ('pxf://{BUCKET}/{data_key}?PROFILE=s3:parquet&SERVER=lakehouse')
         FORMAT 'CUSTOM' (FORMATTER='pxfwritable_import');
         CREATE OR REPLACE VIEW aml.history_by_kind AS
