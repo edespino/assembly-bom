@@ -1,0 +1,25 @@
+products:
+  aml-spike:
+    components:
+      core:
+        - name: amlsim
+          url: https://github.com/IBM/AMLSim.git
+          branch: master
+          env:
+            AMLSIM_CONF: conf.json
+            AMLSIM_PARAM_DIR: paramFiles/1K
+          steps:
+            - clone
+            - prepare
+            - generate
+            - build
+            - run
+        - name: superset
+          url: https://github.com/apache/superset.git
+          branch: "6.1.0"
+          env:
+            SUPERSET_IMAGE: aml-superset:6.1.0
+          steps:
+            - clone
+            - build
+            - run
