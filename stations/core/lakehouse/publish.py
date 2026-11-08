@@ -70,38 +70,50 @@ def main():
         "Polaris-Realm": REALM,
         "Accept": "application/json",
     }
+    existing = None
     try:
-        http("DELETE", BASE + f"/api/management/v1/catalogs/{CATALOG}", None, headers)
-        print("catalog_replaced")
+        existing = http("GET", BASE + f"/api/management/v1/catalogs/{CATALOG}", None, headers)
     except urllib.error.HTTPError as exc:
         exc.read()
         if exc.code != 404:
             raise
     location = f"s3://{BUCKET}/history"
-    payload = {
-        "catalog": {
-            "name": CATALOG,
-            "type": "INTERNAL",
-            "readOnly": False,
-            "properties": {"default-base-location": location},
-            "storageConfigInfo": {
-                "storageType": "S3",
-                "region": "us-west-2",
-                "allowedLocations": [f"s3://{BUCKET}/"],
-                "stsUnavailable": True,
-                "kmsUnavailable": True,
-            },
-        }
+    storage = {
+        "storageType": "S3",
+        "roleArn": role_arn(),
+        "region": "us-west-2",
+        "allowedLocations": [f"s3://{BUCKET}/"],
+        "stsUnavailable": True,
+        "kmsUnavailable": True,
     }
-    try:
-        http("POST", BASE + "/api/management/v1/catalogs", payload, headers)
-        print("catalog_created")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode()
-        if exc.code == 409:
-            print("catalog_exists")
-        else:
+    if existing is None:
+        payload = {
+            "catalog": {
+                "name": CATALOG,
+                "type": "INTERNAL",
+                "readOnly": False,
+                "properties": {"default-base-location": location},
+                "storageConfigInfo": storage,
+            }
+        }
+        try:
+            http("POST", BASE + "/api/management/v1/catalogs", payload, headers)
+            print("catalog_created")
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode()
             raise SystemExit(f"catalog_create_failed {exc.code} {detail}")
+    else:
+        updated = http(
+            "PUT",
+            BASE + f"/api/management/v1/catalogs/{CATALOG}",
+            {
+                "currentEntityVersion": existing["entityVersion"],
+                "properties": {"default-base-location": location},
+                "storageConfigInfo": storage,
+            },
+            headers,
+        )
+        print("catalog_updated", updated.get("entityVersion"))
 
     home = os.path.expanduser("~/polaris-run")
     os.makedirs(home, exist_ok=True)
