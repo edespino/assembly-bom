@@ -11,6 +11,8 @@ image="${SUPERSET_IMAGE:-aml-superset:6.1.0}"
 docker rm -f aml-superset >/dev/null 2>&1 || true
 docker run -d --name aml-superset --network host \
   -e SUPERSET_SECRET_KEY=aml-spike-demo \
-  "$image"
+  -e ADMIN_PASSWORD=admin \
+  "$image" \
+  bash -c 'superset db upgrade && superset fab create-admin --username admin --email admin@superset.com --password "$ADMIN_PASSWORD" --firstname Superset --lastname Admin && superset init && exec /app/docker/entrypoints/run-server.sh'
 echo "[superset-run] container aml-superset started from $image"
 echo "[superset-run] RESULT: PASS"
