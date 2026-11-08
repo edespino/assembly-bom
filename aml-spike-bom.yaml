@@ -14,6 +14,7 @@ products:
             - generate
             - build
             - run
+            - load
         - name: superset
           url: https://github.com/apache/superset.git
           branch: "6.1.0"
