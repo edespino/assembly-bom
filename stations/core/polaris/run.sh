@@ -8,7 +8,11 @@ fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 gradlew=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name gradlew | head -1)
 src=$(dirname "$gradlew")
-dist=$(find "$src/runtime/server/build/distributions" -name 'polaris-server-*.zip' | head -1)
+jar=$(find "$src/runtime/server/build" -path '*/quarkus-app/quarkus-run.jar' ! -path '*/gen/*' | head -1)
+if [[ -z "$jar" ]]; then
+  echo "[polaris-run] ERROR: quarkus-run.jar not found under $src" >&2
+  exit 1
+fi
 run_home="$HOME/polaris-run"
 if [[ -f "$run_home/polaris.pid" ]]; then
   old=$(cat "$run_home/polaris.pid" || true)
@@ -18,20 +22,7 @@ if [[ -f "$run_home/polaris.pid" ]]; then
   fi
 fi
 pkill -f 'quarkus-run.jar' 2>/dev/null || true
-rm -rf "$run_home"
 mkdir -p "$run_home"
-unzip -q "$dist" -d "$run_home"
-jar=$(find "$run_home" -name quarkus-run.jar | head -1)
-if [[ -z "$jar" ]]; then
-  echo "[polaris-run] ERROR: quarkus-run.jar not in $dist" >&2
-  exit 1
-fi
-if [[ -f "$run_home/polaris.pid" ]]; then
-  old=$(cat "$run_home/polaris.pid" || true)
-  if [[ -n "$old" ]]; then
-    kill "$old" 2>/dev/null || true
-  fi
-fi
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
 export AWS_REGION=us-west-2

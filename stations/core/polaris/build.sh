@@ -25,5 +25,5 @@ export PATH="${JAVA_HOME}/bin:${PATH}"
 # The documented distribution task. Skip unit tests; the chapter proof is the
 # running server and a query, not the upstream suite. Do not build a container.
 ./gradlew :polaris-server:build -x test -Dquarkus.container-image.build=false --no-daemon
-test -n "$(find runtime/server/build/distributions -name 'polaris-server-*.zip' | head -1)"
+test -n "$(find runtime/server/build -name quarkus-run.jar | head -1)"
 echo "[polaris-build] RESULT: PASS"
