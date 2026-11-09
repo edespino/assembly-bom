@@ -14,11 +14,11 @@ Rings the watch named: 10,183. Closed loops of five or more accounts inside the 
 
 Planted rings found: 3. There are ten planted schemes. Four are the comes-back shape. Three of those four sat entirely inside a ring the watch named.
 
-Planted rings missed: 1. The fourth planted ring did not sit inside any named ring. This talk does not say why.
+Planted rings missed: 1. The fourth planted ring did not sit inside any named ring. This talk does not say why. That miss is the evidence the search was blind.
 
 Named, and the marks say no: 10,171. Loops of ordinary payments that are not a planted scheme.
 
-Two things the numbers do not say. The other six planted schemes are the other two shapes, into one and out to many. This watch did not look for them, so it did not miss them. They are simply not on this chart.
+Two things the numbers do not say. The other six planted schemes are the other two shapes, into one and out to many. A simple count of many origins or many destinations was checked, and it does not separate those six from ordinary payments. So this watch did not look for them, and it did not miss them. They are on the chart as six, not searched for.
 
 What this means. One shape, one rule, and the watch names over ten thousand rings to land on three. In a real bank, every one of those is work for a person. Here the answers are known, so the rule can be graded instead of trusted. That is the use of a practice bank.
 

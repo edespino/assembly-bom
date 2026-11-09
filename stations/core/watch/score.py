@@ -75,6 +75,7 @@ def chart():
             "query_mode": "raw",
             "all_columns": ["result", "count"],
             "datasource": f"{dataset_id}__table",
+            "order_by_cols": ["[\"ord\", true]"],
             "row_limit": 10,
         }),
     }, access)
@@ -142,15 +143,16 @@ def main():
     if (len(found), len(caught), missed, extra) != (10183, 3, 1, 10171):
         raise SystemExit("score_unexpected")
     values = ", ".join([
-        "('Rings the watch named', 10183)",
-        "('Planted rings found', 3)",
-        "('Planted rings missed', 1)",
-        "('Named, and the marks say no', 10171)",
+        "('Planted rings found', 3, 1)",
+        "('Planted rings missed', 1, 2)",
+        "('Into one and Out to many, not searched for', 6, 3)",
+        "('Rings the watch named', 10183, 4)",
+        "('Named, and the marks say no', 10171, 5)",
     ])
     psql(f"""
         DROP TABLE IF EXISTS aml.watch_score;
-        CREATE TABLE aml.watch_score (result text, count bigint);
-        INSERT INTO aml.watch_score (result, count) VALUES {values};
+        CREATE TABLE aml.watch_score (result text, count bigint, ord int);
+        INSERT INTO aml.watch_score (result, count, ord) VALUES {values};
     """)
     chart()
     print("watch_scored")
