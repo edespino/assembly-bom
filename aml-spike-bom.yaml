@@ -60,6 +60,9 @@ products:
             - apache-extract-discovered
             - build
             - run
+        - name: stream
+          steps:
+            - land
         - name: superset
           url: https://github.com/apache/superset.git
           branch: "6.1.0"
