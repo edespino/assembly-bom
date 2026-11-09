@@ -23,7 +23,7 @@ artifact_os_tag() {
 
 artifact_prefix() {
   local name=$1 version=$2
-  printf 's3://%s/internal/%s/%s/%s' "$(artifact_bucket)" "$name" "$version" "$(artifact_os_tag)"
+  printf 's3://%s/%s/%s/%s' "$(artifact_bucket)" "$name" "$version" "$(artifact_os_tag)"
 }
 
 artifact_step_is_build() {
