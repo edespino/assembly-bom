@@ -16,7 +16,7 @@ demo=$(gpdemo_env_file) || {
 }
 # shellcheck disable=SC1090
 source "$demo"
-if ! command -v python3.11 >/dev/null; then
+if ! python3.11 -m pip --version >/dev/null 2>&1; then
   sudo dnf install -y python3.11 python3.11-pip
 fi
 python3.11 -m pip install --user 'pyiceberg==0.12.0' 'pyarrow' 'boto3'
