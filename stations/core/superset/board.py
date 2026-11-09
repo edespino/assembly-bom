@@ -123,6 +123,8 @@ def main():
         "published": True,
     }, token)
     dash_id = dash["id"]
+    call("PUT", f"/api/v1/chart/{pie['id']}", {"dashboards": [dash_id]}, token)
+    call("PUT", f"/api/v1/chart/{bar['id']}", {"dashboards": [dash_id]}, token)
     position = {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
