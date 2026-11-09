@@ -30,4 +30,6 @@ Read `ARC.md` for the order. Spoken files:
 - `CHAPTER2.md` and `CHAPTER2-TECHNICAL.md` are the live payments
 - `CHAPTER3.md` and `CHAPTER3-TECHNICAL.md` are the earlier version. The station is `stations/core/versions/show.sh`. It asks the file table for the version before the 205 and for the latest. Verified earlier picture: 121,457, Ordinary 121,392, Planted 65. Latest stays 121,662. Do not delete the new payments to show the earlier picture.
 
+- `CHAPTER4.md` and `CHAPTER4-TECHNICAL.md` are the watch. The station is `stations/core/watch/score.sh`. It searches for a ring of at least five accounts closing within 15 simulated days, without the planted marks, then scores. Verified: 10,183 rings named, 3 planted rings found, 1 planted ring missed, 10,171 named rings were not a planted scheme.
+
 Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.

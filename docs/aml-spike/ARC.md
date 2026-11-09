@@ -10,7 +10,7 @@ Spoken order:
 2. History sits in files. The database looks at them there. Done. Heap and files both 121,457. Ordinary 121,392. Planted 65.
 3. Payments arrive live, the planted ones still marked, and the files grow. Done. Latest version 121,662. Ordinary 121,592. Planted 70.
 4. The files say what the bank had at any version. Done. Earlier version 121,457. Ordinary 121,392. Planted 65. The 205 were not deleted.
-5. The bank's own watch runs without the labels and is scored against them. Do not claim a ring the shapes missed until that count exists. If the rules catch all ten, say the rules found more than were planted, and the marks say which were real.
+5. The bank's own watch runs without the labels and is scored against them. Done. The watch looked for a ring of at least five accounts closing within 15 simulated days. It named 10,183 rings. Three of the four planted rings sat on a named ring. One did not. 10,171 named rings were not a planted scheme. The other six planted schemes were not this search.
 6. A second database looks at the same files, and the count matches. Spoken words say second database, not a product name. The reason is an examiner, or a second team, looking without a copy.
 
 Cuts, applied:
