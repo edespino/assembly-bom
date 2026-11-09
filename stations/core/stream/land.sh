@@ -13,7 +13,7 @@ source "$demo"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 lib=$(find "$HOME/bom-parts/flink" -type d -path '*/flink-dist/target/flink-*-bin/flink-*/lib' | head -1)
-clients=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-clients-*.jar' | head -1)
+clients=$(find "$HOME/bom-parts/kafka" -type f -path '*/clients/build/libs/kafka-clients-*.jar' | head -1)
 producer=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-console-producer.sh' | head -1)
 topics=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-topics.sh' | head -1)
 if [[ -z "$lib" || -z "$clients" || -z "$producer" || -z "$topics" ]]; then
