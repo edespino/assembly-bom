@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 NAME="${NAME:?Missing NAME}"
 if [[ "$NAME" != "polaris" ]]; then
   echo "[polaris-build] ERROR: this step is polaris-only" >&2
@@ -16,7 +17,6 @@ if [[ -z "$gradlew" ]]; then
 fi
 cd "$(dirname "$gradlew")"
 chmod +x ./gradlew
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
 source "${script_dir}/../../../lib/gradle-wrapper.sh"
 gradle_use_reachable_distribution gradle/wrapper/gradle-wrapper.properties

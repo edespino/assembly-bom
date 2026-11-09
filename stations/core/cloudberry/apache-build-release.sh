@@ -118,9 +118,9 @@ fi
 export PATH="/opt/go/bin:${JAVA_HOME:+$JAVA_HOME/bin:}${GOBIN}:${PATH}"
 
 note "Building pxf against GPHOME=$GPHOME"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 (
   cd "$PXF_DIR"
-  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   # shellcheck disable=SC1091
   source "${script_dir}/../../../lib/gradle-wrapper.sh"
   while IFS= read -r props; do

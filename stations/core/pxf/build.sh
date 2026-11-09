@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 NAME="${NAME:?Missing NAME}"
 if [[ "$NAME" != "pxf" ]]; then
   echo "[pxf-build] ERROR: this step is pxf-only" >&2
@@ -12,7 +13,6 @@ if [[ -z "$src" ]]; then
   exit 1
 fi
 cd "$(dirname "$src")"
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
 source "${script_dir}/../../../lib/gradle-wrapper.sh"
 while IFS= read -r props; do
