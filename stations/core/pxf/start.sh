@@ -18,6 +18,12 @@ export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 export PATH="${JAVA_HOME}/bin:${PXF_HOME:-/usr/local/cloudberry-pxf}/bin:${PATH}"
 export PXF_HOME=/usr/local/cloudberry-pxf
 export PXF_BASE="${HOME}/pxf-base"
+# Segments connect to the private hostname, while pxf start health-checks localhost.
+# A private-IP-only bind looks down. Listen on every interface.
+props="${PXF_BASE}/conf/pxf-application.properties"
+if [[ -f "$props" ]] && ! grep -q '^server.address=' "$props"; then
+  echo "server.address=0.0.0.0" >> "$props"
+fi
 gpstart -a || true
 pxf start
 psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pxf;"
