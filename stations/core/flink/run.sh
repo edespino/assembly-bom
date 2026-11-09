@@ -7,7 +7,7 @@ if [[ "$NAME" != "flink" ]]; then
 fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 restored="$PARTS_DIR/$NAME/from-artifact"
-home=$(find "$restored" -type f -path '*/bin/start-cluster.sh' 2>/dev/null | head -1)
+home=$(find "$restored" -type f -path '*/bin/start-cluster.sh' 2>/dev/null | head -1 || true)
 if [[ -z "$home" ]]; then
   home=$(find "$PARTS_DIR/$NAME" -type f -path '*/flink-dist/target/*/bin/start-cluster.sh' | head -1)
 fi
