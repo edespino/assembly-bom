@@ -80,9 +80,10 @@ fi
 # Load Cloudberry environment with fallback
 [ -f "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh" ] && source "${SCRIPT_DIR}/../../../config/cloudberry-env-loader.sh"
 if ! source_cloudberry_env /usr/local/cloudberry; then
-  echo "[create-demo-cluster] ERROR: Failed to load Cloudberry environment"
+  echo "[create-demo-cluster] ERROR: Failed to load Cloudberry environment" >&2
   exit 1
 fi
+python3 -m pip install --user "PyGreSQL==5.2.5"
 
 # Default leaves fsync at the server default (on).
 # ./assemble.sh --fsync-off sets FSYNC_OFF=1 for the fast demo cluster.
