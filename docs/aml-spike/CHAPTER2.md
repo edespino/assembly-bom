@@ -10,7 +10,7 @@ Now payments arrive while you watch. Two hundred and five came in. Two hundred o
 
 Each new payment lands in the database as it arrives. Then the same payments were added to the files, as one new version. The files grew.
 
-Look at the chart: Planted and ordinary, from the history files. The Planted slice says 70. The Ordinary slice says 121,592. Together, 121,662. Two hundred and five more than before.
+Look at the chart: Planted and ordinary, from the history files. The Planted row says 70. The Ordinary row says 121,592. Together, 121,662. Two hundred and five more than before.
 
 The sentence to keep: new payments arrived at the practice bank, the files grew, and the chart you know shows the larger count.
 

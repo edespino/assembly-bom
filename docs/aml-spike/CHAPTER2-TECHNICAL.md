@@ -12,7 +12,7 @@ The second landing. The same two hundred and five were committed to the history 
 
 Now the counts, which are the proof. Before: 121,457 payments in the files. 121,392 ordinary, 65 planted. Arrived: 205. 200 ordinary, 5 planted. After the commit, the files hold 121,662. 121,592 ordinary, 70 planted. The arithmetic closes: 121,457 plus 205 is 121,662, and 65 plus 5 is 70.
 
-The chart on screen, Planted and ordinary, from the history files, is built from the files the same way as chapter 1. It returned 121,662. The Planted slice shows 70. That is the count moving. The proof is the count moving, not a version id.
+The chart on screen, Planted and ordinary, from the history files, is built from the files the same way as chapter 1. It returned 121,662. The Planted row shows 70. That is the count moving. The proof is the count moving, not a version id.
 
 What this cut is not. No rule fired. No model ran. The five planted marks arrived with their payments, written by the simulator before the payments were ever sent. Nothing was found here.
 
