@@ -42,9 +42,20 @@ def main():
             stdout=handle,
         )
     from pyiceberg.catalog import load_catalog
+    import pyarrow as pa
     import pyarrow.csv as pacsv
 
     table = pacsv.read_csv(csv_path)
+    table = table.cast(
+        pa.schema(
+            [
+                ("step", pa.int64()),
+                ("amount", pa.float64()),
+                ("is_sar", pa.int64()),
+                ("alert_id", pa.int64()),
+            ]
+        )
+    )
     print("live_rows", table.num_rows)
     catalog = load_catalog(
         "polaris",
