@@ -120,8 +120,9 @@ export PATH="/opt/go/bin:${JAVA_HOME:+$JAVA_HOME/bin:}${GOBIN}:${PATH}"
 note "Building pxf against GPHOME=$GPHOME"
 (
   cd "$PXF_DIR"
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   # shellcheck disable=SC1091
-  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/gradle-wrapper.sh"
+  source "${script_dir}/../../../lib/gradle-wrapper.sh"
   while IFS= read -r props; do
     gradle_use_reachable_distribution "$props"
   done < <(find . -name gradle-wrapper.properties)
