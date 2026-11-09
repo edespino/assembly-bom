@@ -32,4 +32,6 @@ Read `ARC.md` for the order. Spoken files:
 
 - `CHAPTER4.md` and `CHAPTER4-TECHNICAL.md` are the watch. The station is `stations/core/watch/score.sh`. It searches for a ring of at least five accounts closing within 15 simulated days, without the planted marks, then scores. Verified: 10,183 rings named, 3 planted rings found, 1 planted ring missed, 10,171 named rings were not a planted scheme.
 
+- `CHAPTER5.md` and `CHAPTER5-TECHNICAL.md` are the second look. A second machine runs a second instance of the same database and reads the same file directory through PXF. Verified count: 121,662. Ordinary 121,592. Planted 70. It does not show the earlier version, and it cannot run the watch.
+
 Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.
