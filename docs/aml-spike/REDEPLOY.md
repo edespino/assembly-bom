@@ -27,6 +27,7 @@ Read `ARC.md` for the order. Spoken files:
 
 - `STORY.md` and `TECHNICAL.md` are chapter 0
 - `CHAPTER1.md` and `CHAPTER1-TECHNICAL.md` are chapter 1
-- Chapter 2 landing is `stations/core/stream/land.sh`. It publishes 205 payments, 200 ordinary and 5 planted, through the Kafka built from source. The Flink job built from the Flink 2.1.3 source reads that topic and lands the rows. The same rows are committed once as a new Iceberg version. Verified file count after that commit: 121,662. Ordinary 121,592. Planted 70. Do not re-run the landing unless a new version is intended.
+- `CHAPTER2.md` and `CHAPTER2-TECHNICAL.md` are the live payments
+- `CHAPTER3.md` and `CHAPTER3-TECHNICAL.md` are the earlier version. The station is `stations/core/versions/show.sh`. It asks the file table for the version before the 205 and for the latest. Verified earlier picture: 121,457, Ordinary 121,392, Planted 65. Latest stays 121,662. Do not delete the new payments to show the earlier picture.
 
-Chapter 2 narration is written after that count is on the chart. Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.
+Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.
