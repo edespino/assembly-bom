@@ -21,4 +21,9 @@ export PXF_BASE="${HOME}/pxf-base"
 gpstart -a || true
 pxf start
 psql -d postgres -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pxf;"
+# The coordinator create does not install the extension on the segments.
+# A segment query then returns no rows and does not call PXF.
+while read -r port; do
+  PGOPTIONS="-c gp_session_role=utility" psql -h 127.0.0.1 -p "$port" -d postgres -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pxf;"
+done < <(psql -d postgres -tA -c "SELECT port FROM gp_segment_configuration WHERE content >= 0 AND role = 'p' AND status = 'u'")
 echo "[pxf-start] RESULT: PASS"
