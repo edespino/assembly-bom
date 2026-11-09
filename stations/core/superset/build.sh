@@ -2,6 +2,7 @@
 # Build Superset 6.1.0 from the cloned tag. Do not pull a published image.
 # The 6.1.0 Dockerfile production stage is lean, not superset.
 set -euo pipefail
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 NAME="${NAME:?Missing NAME}"
 if [[ "$NAME" != "superset" ]]; then
   echo "[superset-build] ERROR: this step is superset-only" >&2
@@ -20,4 +21,7 @@ RUN uv pip install '.[postgres]'
 USER superset
 EOF
 docker build -t "$image" -f /tmp/superset-postgres.Dockerfile "$PARTS_DIR/$NAME"
+# shellcheck disable=SC1091
+source "${script_dir}/../../../lib/build-artifact.sh"
+artifact_publish superset "${ARTIFACT_VERSION:-6.1.0}" "$image"
 echo "[superset-build] RESULT: PASS image=$image"

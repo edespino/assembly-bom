@@ -6,9 +6,12 @@ if [[ "$NAME" != "polaris" ]]; then
   exit 1
 fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
-gradlew=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name gradlew | head -1)
-src=$(dirname "$gradlew")
-jar="$src/runtime/server/build/quarkus-app/quarkus-run.jar"
+jar="$PARTS_DIR/$NAME/from-artifact/quarkus-app/quarkus-run.jar"
+if [[ ! -f "$jar" ]]; then
+  gradlew=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name gradlew | head -1)
+  src=$(dirname "$gradlew")
+  jar="$src/runtime/server/build/quarkus-app/quarkus-run.jar"
+fi
 if [[ ! -f "$jar" ]]; then
   echo "[polaris-run] ERROR: $jar not found" >&2
   exit 1

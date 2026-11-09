@@ -20,4 +20,7 @@ gradle_use_reachable_distribution gradle/wrapper/gradle-wrapper.properties
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
 ./gradlew jar -x test --no-daemon
+# shellcheck disable=SC1091
+source "${script_dir}/../../../lib/build-artifact.sh"
+artifact_publish kafka "${ARTIFACT_VERSION:-4.4.0}" "$(pwd)"
 echo "[kafka-build] RESULT: PASS"

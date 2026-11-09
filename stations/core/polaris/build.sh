@@ -26,4 +26,7 @@ export PATH="${JAVA_HOME}/bin:${PATH}"
 # running server and a query, not the upstream suite. Do not build a container.
 ./gradlew :polaris-server:build -x test -Dquarkus.container-image.build=false --no-daemon
 test -n "$(find runtime/server/build -name quarkus-run.jar | head -1)"
+# shellcheck disable=SC1091
+source "${script_dir}/../../../lib/build-artifact.sh"
+artifact_publish polaris "${ARTIFACT_VERSION:-1.8.0}" "$(find runtime/server/build -type d -name quarkus-app | head -1)"
 echo "[polaris-build] RESULT: PASS"

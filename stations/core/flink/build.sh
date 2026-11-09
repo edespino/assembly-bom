@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 NAME="${NAME:?Missing NAME}"
 if [[ "$NAME" != "flink" ]]; then
   echo "[flink-build] ERROR: this step is flink-only" >&2
@@ -33,4 +34,9 @@ mvn -version
 # The signed release was already verified. RAT fails on one file in this extract
 # and is not the demo gate.
 mvn -B -DskipTests -Drat.skip=true -T 1C package
+dist=$(find flink-dist/target -type f -path '*/bin/start-cluster.sh' | head -1)
+dist=$(dirname "$(dirname "$dist")")
+# shellcheck disable=SC1091
+source "${script_dir}/../../../lib/build-artifact.sh"
+artifact_publish flink "${ARTIFACT_VERSION:-2.1.3}" "$dist"
 echo "[flink-build] RESULT: PASS"

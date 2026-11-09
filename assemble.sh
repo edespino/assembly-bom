@@ -18,6 +18,8 @@ else
     echo "[assemble.sh] Missing library: ${COMMON_SH}" >&2
     exit 1
 fi
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/build-artifact.sh"
 
 cd "$SCRIPT_DIR"
 
@@ -425,8 +427,22 @@ for LAYER in dependencies core extensions utilities components; do
 
     STEP_TIMINGS=()
     COMPONENT_START=$(date +%s)
+    ARTIFACT_RESTORED=0
+    if [[ -n "${ARTIFACT_VERSION:-}" && -n "${ARTIFACT_BUCKET:-}" ]]; then
+      artifact_dest="${PARTS_DIR:-$HOME/bom-parts}/$NAME/from-artifact"
+      if artifact_restore "$NAME" "$ARTIFACT_VERSION" "$artifact_dest"; then
+        ARTIFACT_RESTORED=1
+        echo "[assemble] artifact hit for $NAME $ARTIFACT_VERSION; skipping source build steps"
+      else
+        echo "[assemble] artifact miss for $NAME $ARTIFACT_VERSION; building"
+      fi
+    fi
 
     for STEP in "${STEPS[@]}"; do
+      if [[ "$ARTIFACT_RESTORED" == "1" ]] && artifact_step_is_build "$STEP"; then
+        echo "[assemble] --> Step: $STEP (skipped, artifact)"
+        continue
+      fi
       SCRIPT="stations/${LAYER}/${NAME}/${STEP}.sh"
       FALLBACK="stations/generic/${STEP}.sh"
       echo "[assemble] --> Step: $STEP"

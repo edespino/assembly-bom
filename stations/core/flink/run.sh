@@ -6,7 +6,11 @@ if [[ "$NAME" != "flink" ]]; then
   exit 1
 fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
-home=$(find "$PARTS_DIR/$NAME" -type f -path '*/flink-dist/target/*/bin/start-cluster.sh' | head -1)
+restored="$PARTS_DIR/$NAME/from-artifact"
+home=$(find "$restored" -type f -path '*/bin/start-cluster.sh' 2>/dev/null | head -1)
+if [[ -z "$home" ]]; then
+  home=$(find "$PARTS_DIR/$NAME" -type f -path '*/flink-dist/target/*/bin/start-cluster.sh' | head -1)
+fi
 if [[ -z "$home" ]]; then
   echo "[flink-run] ERROR: start-cluster.sh not found after the source build" >&2
   exit 1
