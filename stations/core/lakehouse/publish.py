@@ -24,6 +24,33 @@ def run(cmd, **kwargs):
     return completed
 
 
+def prefix_listing(returncode, stdout, stderr):
+    """A missing prefix exits 1 with empty output. That is an empty listing."""
+    if stderr:
+        raise SystemExit(stderr)
+    if returncode == 0 or (returncode == 1 and not stdout):
+        return stdout
+    raise SystemExit(stdout or f"exit {returncode}")
+
+
+def list_prefix(prefix):
+    completed = subprocess.run(
+        ["aws", "s3", "ls", f"s3://{BUCKET}/{prefix}/", "--recursive"],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    return prefix_listing(completed.returncode, completed.stdout, completed.stderr)
+
+
+def data_parquet_keys(listing):
+    return [
+        line.split()[-1]
+        for line in listing.splitlines()
+        if line.endswith(".parquet") and "/metadata/" not in line
+    ]
+
+
 def http(method, url, body=None, headers=None):
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(url, data=data, method=method)
@@ -83,8 +110,8 @@ def main():
         exc.read()
         if exc.code != 404:
             raise
-    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/{LAKE_PREFIX}/", "--recursive"]).stdout
-    if any(line.endswith(".parquet") and "/metadata/" not in line for line in listed.splitlines()):
+    listed = list_prefix(LAKE_PREFIX)
+    if data_parquet_keys(listed):
         raise SystemExit(f"lake_prefix_already_has_files {LAKE_PREFIX}")
     location = f"s3://{BUCKET}/{LAKE_PREFIX}"
     storage = {
@@ -215,12 +242,8 @@ def main():
         print("iceberg_appended")
     else:
         print("iceberg_already_loaded")
-    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/{LAKE_PREFIX}/", "--recursive"]).stdout
-    data_files = [
-        line.split()[-1]
-        for line in listed.splitlines()
-        if line.endswith(".parquet") and "/metadata/" not in line
-    ]
+    listed = list_prefix(LAKE_PREFIX)
+    data_files = data_parquet_keys(listed)
     if not data_files:
         raise SystemExit("no_parquet")
     data_key = data_files[0].rsplit("/", 1)[0]
