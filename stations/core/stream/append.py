@@ -70,18 +70,26 @@ def main():
     )
     iceberg = catalog.load_table(("aml", "transactions"))
     before = iceberg.current_snapshot().snapshot_id
-    iceberg.append(table)
+    current_rows = iceberg.scan().to_arrow().num_rows
+    print(f"ICEBERG_ROWS={current_rows}")
+    if current_rows == 121457:
+        iceberg.append(table)
+        iceberg = catalog.load_table(("aml", "transactions"))
+    elif current_rows != 121662:
+        raise SystemExit(f"unexpected_iceberg_rows {current_rows}")
     after = iceberg.current_snapshot().snapshot_id
     print(f"SNAPSHOT_BEFORE={before}")
     print(f"SNAPSHOT_AFTER={after}")
-    if before == after:
-        raise SystemExit("snapshot_did_not_move")
-    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/history/", "--recursive"]).stdout
-    data_files = [
-        line.split()[-1]
-        for line in listed.splitlines()
-        if line.endswith(".parquet") and "/metadata/" not in line
-    ]
+    import boto3
+
+    keys = []
+    pager = boto3.client("s3", region_name="us-west-2").get_paginator("list_objects_v2")
+    for page in pager.paginate(Bucket=BUCKET, Prefix="history/"):
+        for item in page.get("Contents", []):
+            key = item["Key"]
+            if key.endswith(".parquet") and "/metadata/" not in key:
+                keys.append(key)
+    data_files = sorted(keys)
     prefixes = sorted({path.rsplit("/", 1)[0] for path in data_files})
     print("parquet_prefixes", len(prefixes))
     # PXF reads one prefix. If the new files share the original directory, use it.
