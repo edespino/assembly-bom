@@ -15,6 +15,9 @@ docker run -d --name aml-superset --network host \
   "$image" \
   bash -c 'superset db upgrade && superset fab create-admin --username admin --email admin@superset.com --password "$ADMIN_PASSWORD" --firstname Superset --lastname Admin && superset init && exec /app/docker/entrypoints/run-server.sh'
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if ! command -v python3.11 >/dev/null; then
+  sudo dnf install -y python3.11
+fi
 python3.11 "$script_dir/board.py"
 echo "[superset-run] container aml-superset started from $image"
 echo "[superset-run] RESULT: PASS"

@@ -11,5 +11,8 @@ demo=$(find "$HOME" /usr/local/cloudberry -name gpdemo-env.sh 2>/dev/null | head
 # shellcheck disable=SC1090
 source "$demo"
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if ! command -v python3.11 >/dev/null; then
+  sudo dnf install -y python3.11
+fi
 python3.11 "$script_dir/score.py"
 echo "[watch-score] RESULT: PASS"
