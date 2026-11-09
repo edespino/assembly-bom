@@ -25,6 +25,33 @@ fi
 
 NAME="${NAME:?Component NAME is required}"
 EXT_DIR="$PARTS_DIR/$NAME"
+
+# A prefix-tarball hit has no source tree. The installed script creates the cluster.
+if [[ -x /usr/local/cloudberry/bin/gpdemo && ! -d "$EXT_DIR" ]]; then
+  section "create demo cluster from installed gpdemo"
+  start_time=$(date +%s)
+  # shellcheck disable=SC1091
+  source /usr/local/cloudberry/cloudberry-env.sh
+  python3 -m pip install --user "PyGreSQL==5.2.5"
+  export PORT_BASE="${PORT_BASE:-7000}"
+  if [[ "${FSYNC_OFF:-0}" == "1" ]]; then
+    export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
+    log "BLDWRAP_POSTGRES_CONF_ADDONS set to: $BLDWRAP_POSTGRES_CONF_ADDONS"
+  fi
+  work=$(mktemp -d)
+  cd "$work"
+  /usr/local/cloudberry/bin/gpdemo
+  if [[ "${FSYNC_OFF:-0}" == "1" ]]; then
+    # shellcheck disable=SC1091
+    source "$work/gpdemo-env.sh"
+    fsync_value=$(psql -d postgres -tA -c "SHOW fsync;")
+    log "SHOW fsync=${fsync_value}"
+    [[ "$fsync_value" == "off" ]]
+  fi
+  section_complete "create demo cluster" "$start_time"
+  exit 0
+fi
+
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 section "create demo cluster"

@@ -432,6 +432,7 @@ for LAYER in dependencies core extensions utilities components; do
       artifact_dest="${PARTS_DIR:-$HOME/bom-parts}/$NAME/from-artifact"
       if artifact_restore "$NAME" "$ARTIFACT_VERSION" "$artifact_dest"; then
         ARTIFACT_RESTORED=1
+        export ARTIFACT_RESTORED
         echo "[assemble] artifact hit for $NAME $ARTIFACT_VERSION; skipping source build steps"
       else
         echo "[assemble] artifact miss for $NAME $ARTIFACT_VERSION; building"

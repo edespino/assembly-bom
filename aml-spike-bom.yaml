@@ -20,6 +20,7 @@ products:
             RELEASE_URL: "https://downloads.apache.org/incubator/cloudberry/2.2.0-incubating"
             KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
             ARTIFACT_MATCH: "apache-cloudberry-pxf-2.2.0-incubating-src.tar.gz"
+            ARTIFACT_VERSION: "2.2.0-incubating"
           steps:
             - apache-discover-and-verify-release
             - apache-extract-discovered

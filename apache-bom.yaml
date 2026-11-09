@@ -9,6 +9,7 @@ products:
             RELEASE_CANDIDATE: ""
             RELEASE_URL: "https://downloads.apache.org/incubator/cloudberry/2.2.0-incubating"
             KEYS_URL: "https://downloads.apache.org/incubator/cloudberry/KEYS"
+            ARTIFACT_VERSION: "2.2.0-incubating"
           configure_flags: |
             --disable-external-fts
             --enable-gpcloud

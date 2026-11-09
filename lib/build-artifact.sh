@@ -28,7 +28,7 @@ artifact_prefix() {
 
 artifact_step_is_build() {
   case "$1" in
-    clone|apache-discover-and-verify-release|apache-extract-discovered|build|install|apache-build-release|apache-validate-compliance|apache-rat|apache-validate-build-artifacts|apache-validate-release-structure)
+    clone|apache-discover-and-verify-release|apache-extract-discovered|build|install|apache-build-release|apache-validate-compliance|apache-rat|apache-review-license-compliance|apache-check-built-versions|apache-validate-build-artifacts|apache-validate-release-structure)
       return 0
       ;;
     *)
@@ -37,18 +37,51 @@ artifact_step_is_build() {
   esac
 }
 
+artifact_is_prefix_pair() {
+  [[ "$1" == "cloudberry" || "$1" == "pxf" ]] && [[ "$2" == "2.2.0-incubating" ]]
+}
+
+artifact_manifest_matches() {
+  local file=$1 version=$2 tag
+  tag=$(artifact_os_tag)
+  if grep -q "^version=${version}$" "$file" && grep -q "^os_tag=${tag}$" "$file"; then
+    return 0
+  fi
+  # The prefix saved before teardown. It has no version= or os_tag= line.
+  if [[ "$version" == "2.2.0-incubating" && "$tag" == "rocky9-x86_64" ]] \
+    && grep -q "^source=apache-cloudberry-2.2.0-incubating$" "$file" \
+    && grep -q "^os=rocky$" "$file" \
+    && grep -q "^os_version=9" "$file" \
+    && grep -q "^arch=x86_64$" "$file"; then
+    return 0
+  fi
+  return 1
+}
+
 artifact_restore() {
   local name=${1:?} version=${2:?} dest=${3:?}
-  local bucket prefix manifest_local sha
+  local bucket prefix manifest_local sha archive
   bucket=$(artifact_bucket)
   [[ -n "$bucket" ]] || return 1
-  prefix=$(artifact_prefix "$name" "$version")
+  if artifact_is_prefix_pair "$name" "$version" \
+    && [[ -x /usr/local/cloudberry/bin/gpdemo && -d /usr/local/cloudberry-pxf/bin ]]; then
+    echo "[artifact] Cloudberry and PXF prefixes already restored"
+    return 0
+  fi
+  if artifact_is_prefix_pair "$name" "$version"; then
+    prefix=$(artifact_prefix cloudberry "$version")
+    archive=cloudberry-pxf-prefixes.tar.gz
+    dest=$(mktemp -d)
+  else
+    prefix=$(artifact_prefix "$name" "$version")
+    archive=${name}.tar.gz
+  fi
   manifest_local=$(mktemp)
   if ! aws s3 cp "$prefix/manifest.txt" "$manifest_local" --region "${AWS_REGION:-us-west-2}" >/dev/null 2>&1; then
     rm -f "$manifest_local"
     return 1
   fi
-  if ! grep -q "^version=${version}$" "$manifest_local" || ! grep -q "^os_tag=$(artifact_os_tag)$" "$manifest_local"; then
+  if ! artifact_manifest_matches "$manifest_local" "$version"; then
     rm -f "$manifest_local"
     return 1
   fi
@@ -56,16 +89,24 @@ artifact_restore() {
   rm -f "$manifest_local"
   [[ -n "$sha" ]] || return 1
   mkdir -p "$dest"
-  aws s3 cp "$prefix/${name}.tar.gz" "$dest/${name}.tar.gz" --region "${AWS_REGION:-us-west-2}"
-  echo "$sha  $dest/${name}.tar.gz" | sha256sum -c -
+  aws s3 cp "$prefix/${archive}" "$dest/${archive}" --region "${AWS_REGION:-us-west-2}"
+  echo "$sha  $dest/${archive}" | sha256sum -c -
   case "$name" in
     superset)
-      docker load -i "$dest/${name}.tar.gz"
+      docker load -i "$dest/${archive}"
       ;;
     *)
-      tar -xzf "$dest/${name}.tar.gz" -C "$dest"
+      if artifact_is_prefix_pair "$name" "$version"; then
+        sudo tar -xzf "$dest/${archive}" -C /usr/local
+        rm -rf "$dest"
+      else
+        tar -xzf "$dest/${archive}" -C "$dest"
+      fi
       ;;
   esac
+  if artifact_is_prefix_pair "$name" "$version"; then
+    [[ -x /usr/local/cloudberry/bin/gpdemo && -d /usr/local/cloudberry-pxf/bin ]]
+  fi
   echo "[artifact] restored $name $version from $prefix"
   return 0
 }
