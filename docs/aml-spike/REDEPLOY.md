@@ -19,7 +19,7 @@ Signed pins:
 - Kafka 4.4.0 source
 - Flink 2.1.3 source
 
-Flink 2.1.3 requires Maven 3.8.6 exactly. The station installs that toolchain. The image default is Apache Maven 3.10.0, once that image change is in the registered AMI. Maven 4 is a release candidate and is not the default.
+Flink 2.1.3 was built with Apache Maven 3.10.0 on PATH. The release notes name 3.8.6. That exact pin is not what this host used, and the root build passed with 3.10.0. Maven 4 is a release candidate and is not the default.
 
 ## Story
 
@@ -27,5 +27,6 @@ Read `ARC.md` for the order. Spoken files:
 
 - `STORY.md` and `TECHNICAL.md` are chapter 0
 - `CHAPTER1.md` and `CHAPTER1-TECHNICAL.md` are chapter 1
+- Chapter 2 landing is `stations/core/stream/land.sh`. It publishes 205 payments, 200 ordinary and 5 planted, through the Kafka built from source. The Flink job built from the Flink 2.1.3 source reads that topic and lands the rows. The same rows are committed once as a new Iceberg version. Verified file count after that commit: 121,662. Ordinary 121,592. Planted 70. Do not re-run the landing unless a new version is intended.
 
-Chapter 2 is not finished. Kafka is built from source. Flink is the one ingest path. New payments must commit an Iceberg version so the file count can rise. Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.
+Chapter 2 narration is written after that count is on the chart. Do not speak kafka_fdw or SeaTunnel. Do not speak a calendar date. Do not say warehouse. A mark stays planted until the watch is scored.
