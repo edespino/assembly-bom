@@ -66,6 +66,9 @@ products:
         - name: versions
           steps:
             - show
+        - name: watch
+          steps:
+            - score
         - name: superset
           url: https://github.com/apache/superset.git
           branch: "6.1.0"
