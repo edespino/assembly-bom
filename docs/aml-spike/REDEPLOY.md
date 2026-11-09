@@ -34,7 +34,7 @@ Read `ARC.md` for the order. Spoken files:
 
 - `CHAPTER5.md` and `CHAPTER5-TECHNICAL.md` are the second look. A second machine runs a second instance of the same database and reads the same file directory through PXF. Verified count: 121,662. Ordinary 121,592. Planted 70. It does not show the earlier version, and it cannot run the watch. Do not copy the install from the first machine. Build Cloudberry and PXF on the second machine, then run the count. The PXF start step installs the extension on each primary, not only the coordinator.
 
-The previous file prefixes `history/` and `bank/` are still in the bucket. This run writes `practice/` so a directory read does not mix with either. Do not delete the old objects unless that delete is named.
+The previous file prefixes stay. A deploy sets `LAKE_PREFIX` to a new single path segment. Publish refuses a prefix that already has Parquet. Do not delete the old objects unless that delete is named.
 
 Two machines: the launcher environment `rl9-aml-spike` with `vm_count` 2. Both use the rocky9 Cloudberry engineering image. The image Maven pin is Apache Maven 3.10.0. Narrations in this directory are the spoken source. Do not regenerate them.
 

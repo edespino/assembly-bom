@@ -7,7 +7,10 @@ import urllib.error
 import urllib.request
 
 BUCKET = "aml-spike-lakehouse-260369602265"
-PREFIX = "practice/transactions"
+LAKE_PREFIX = os.environ.get("LAKE_PREFIX", "").strip().strip("/")
+if not LAKE_PREFIX or "/" in LAKE_PREFIX:
+    raise SystemExit("LAKE_PREFIX must be one path segment")
+PREFIX = f"{LAKE_PREFIX}/transactions"
 CATALOG = "aml_history"
 REALM = "POLARIS"
 BASE = "http://127.0.0.1:8181"
@@ -80,7 +83,10 @@ def main():
         exc.read()
         if exc.code != 404:
             raise
-    location = f"s3://{BUCKET}/practice"
+    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/{LAKE_PREFIX}/", "--recursive"]).stdout
+    if any(line.endswith(".parquet") and "/metadata/" not in line for line in listed.splitlines()):
+        raise SystemExit(f"lake_prefix_already_has_files {LAKE_PREFIX}")
+    location = f"s3://{BUCKET}/{LAKE_PREFIX}"
     storage = {
         "storageType": "S3",
         "roleArn": role_arn(),
@@ -209,7 +215,7 @@ def main():
         print("iceberg_appended")
     else:
         print("iceberg_already_loaded")
-    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/practice/", "--recursive"]).stdout
+    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/{LAKE_PREFIX}/", "--recursive"]).stdout
     data_files = [
         line.split()[-1]
         for line in listed.splitlines()

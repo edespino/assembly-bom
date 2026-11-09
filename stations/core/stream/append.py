@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Commit the rows Flink just landed as a new Iceberg version."""
 import json
+import os
 import subprocess
 import urllib.request
 
 BASE = "http://127.0.0.1:8181"
 CATALOG = "aml_history"
 BUCKET = "aml-spike-lakehouse-260369602265"
+LAKE_PREFIX = os.environ.get("LAKE_PREFIX", "").strip().strip("/")
+if not LAKE_PREFIX or "/" in LAKE_PREFIX:
+    raise SystemExit("LAKE_PREFIX must be one path segment")
 
 
 def run(cmd):
@@ -84,7 +88,7 @@ def main():
 
     keys = []
     pager = boto3.client("s3", region_name="us-west-2").get_paginator("list_objects_v2")
-    for page in pager.paginate(Bucket=BUCKET, Prefix="practice/"):
+    for page in pager.paginate(Bucket=BUCKET, Prefix=f"{LAKE_PREFIX}/"):
         for item in page.get("Contents", []):
             key = item["Key"]
             if key.endswith(".parquet") and "/metadata/" not in key:
