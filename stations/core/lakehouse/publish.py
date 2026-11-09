@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 
 BUCKET = "aml-spike-lakehouse-260369602265"
-PREFIX = "history/transactions"
+PREFIX = "bank/transactions"
 CATALOG = "aml_history"
 REALM = "POLARIS"
 BASE = "http://127.0.0.1:8181"
@@ -80,7 +80,7 @@ def main():
         exc.read()
         if exc.code != 404:
             raise
-    location = f"s3://{BUCKET}/history"
+    location = f"s3://{BUCKET}/bank"
     storage = {
         "storageType": "S3",
         "roleArn": role_arn(),
@@ -209,7 +209,7 @@ def main():
         print("iceberg_appended")
     else:
         print("iceberg_already_loaded")
-    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/history/", "--recursive"]).stdout
+    listed = run(["aws", "s3", "ls", f"s3://{BUCKET}/bank/", "--recursive"]).stdout
     data_files = [
         line.split()[-1]
         for line in listed.splitlines()

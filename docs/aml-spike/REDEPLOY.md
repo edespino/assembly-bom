@@ -34,7 +34,7 @@ Read `ARC.md` for the order. Spoken files:
 
 - `CHAPTER5.md` and `CHAPTER5-TECHNICAL.md` are the second look. A second machine runs a second instance of the same database and reads the same file directory through PXF. Verified count: 121,662. Ordinary 121,592. Planted 70. It does not show the earlier version, and it cannot run the watch. Do not copy the install from the first machine. Build Cloudberry and PXF on the second machine, then run the count. The PXF start step installs the extension on each primary, not only the coordinator.
 
-The file bucket is not part of the VM environment. A VM teardown does not delete it. Reuse it. Do not deregister the previous AMI unless that image is named in a separate go.
+The previous file prefix `history/` is still in the bucket from the first run. This rebuild writes `bank/` so a directory read does not mix the two. Do not delete the old objects unless that delete is named.
 
 Two machines: the launcher environment `rl9-aml-spike` with `vm_count` 2. Both use the rocky9 Cloudberry engineering image. The image Maven pin is Apache Maven 3.10.0. Narrations in this directory are the spoken source. Do not regenerate them.
 

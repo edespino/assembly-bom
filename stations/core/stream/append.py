@@ -84,7 +84,7 @@ def main():
 
     keys = []
     pager = boto3.client("s3", region_name="us-west-2").get_paginator("list_objects_v2")
-    for page in pager.paginate(Bucket=BUCKET, Prefix="history/"):
+    for page in pager.paginate(Bucket=BUCKET, Prefix="bank/"):
         for item in page.get("Contents", []):
             key = item["Key"]
             if key.endswith(".parquet") and "/metadata/" not in key:
