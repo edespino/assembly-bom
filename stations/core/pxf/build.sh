@@ -13,6 +13,11 @@ if [[ -z "$src" ]]; then
 fi
 cd "$(dirname "$src")"
 # shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/gradle-wrapper.sh"
+while IFS= read -r props; do
+  gradle_use_reachable_distribution "$props"
+done < <(find . -name gradle-wrapper.properties)
+# shellcheck disable=SC1091
 source /usr/local/cloudberry/cloudberry-env.sh
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"

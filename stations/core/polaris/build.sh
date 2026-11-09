@@ -16,10 +16,9 @@ if [[ -z "$gradlew" ]]; then
 fi
 cd "$(dirname "$gradlew")"
 chmod +x ./gradlew
-wrapper_props="gradle/wrapper/gradle-wrapper.properties"
-if [[ -f "$wrapper_props" ]]; then
-  sed -i 's/networkTimeout=10000/networkTimeout=180000/' "$wrapper_props"
-fi
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/gradle-wrapper.sh"
+gradle_use_reachable_distribution gradle/wrapper/gradle-wrapper.properties
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
 # The documented distribution task. Skip unit tests; the chapter proof is the
