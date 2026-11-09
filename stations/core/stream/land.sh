@@ -29,7 +29,8 @@ echo "157963d60ae66d607e09466e8c0cdf8087e9cb20d0159899ffca96bca2528460  $jdbc_ja
 
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
-cp="$lib/*:$clients:$jdbc_jar"
+cp=$(find "$lib" -name '*.jar' -printf '%p:')
+cp="${cp}${clients}:${jdbc_jar}"
 javac -cp "$cp" -d /tmp/live-landing "$script_dir/LiveLanding.java"
 
 psql -d postgres -v ON_ERROR_STOP=1 -c "
