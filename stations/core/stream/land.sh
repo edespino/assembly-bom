@@ -18,12 +18,18 @@ demo=$(gpdemo_env_file) || {
 source "$demo"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-lib=$(find "$HOME/bom-parts/flink" -type d -path '*/flink-dist/target/flink-*-bin/flink-*/lib' | head -1)
-clients=$(find "$HOME/bom-parts/kafka" -type f -path '*/clients/build/libs/kafka-clients-*.jar' | head -1)
-producer=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-console-producer.sh' | head -1)
-topics=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-topics.sh' | head -1)
+lib=$(find "$HOME/bom-parts/flink" -type d -path '*/flink-dist/target/flink-*-bin/flink-*/lib' | head -1 || true)
+if [[ -z "$lib" ]]; then
+  start=$(find "$HOME/bom-parts/flink" -type f -path '*/bin/start-cluster.sh' | head -1 || true)
+  if [[ -n "$start" ]]; then
+    lib="$(dirname "$(dirname "$start")")/lib"
+  fi
+fi
+clients=$(find "$HOME/bom-parts/kafka" -type f -path '*/clients/build/libs/kafka-clients-*.jar' | head -1 || true)
+producer=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-console-producer.sh' | head -1 || true)
+topics=$(find "$HOME/bom-parts/kafka" -type f -name 'kafka-topics.sh' | head -1 || true)
 if [[ -z "$lib" || -z "$clients" || -z "$producer" || -z "$topics" ]]; then
-  echo "[stream-land] ERROR: flink or kafka tools missing" >&2
+  echo "[stream-land] ERROR: flink or kafka tools missing lib=${lib:-} clients=${clients:-} producer=${producer:-} topics=${topics:-}" >&2
   exit 1
 fi
 
