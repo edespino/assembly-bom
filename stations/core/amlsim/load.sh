@@ -20,7 +20,13 @@ done
 
 # shellcheck disable=SC1091
 source /usr/local/cloudberry/cloudberry-env.sh
-demo_env=$(echo "$PARTS_DIR"/cloudberry/apache-cloudberry-[0-9]*/gpAux/gpdemo/gpdemo-env.sh)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck disable=SC1091
+source "$script_dir/../../../lib/gpdemo-env.sh"
+demo_env=$(gpdemo_env_file) || {
+  echo "[amlsim-load] ERROR: gpdemo-env.sh not found at ${HOME}/gpdemo/gpdemo-env.sh" >&2
+  exit 1
+}
 # shellcheck disable=SC1090
 source "$demo_env"
 

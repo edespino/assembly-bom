@@ -38,7 +38,8 @@ if [[ -x /usr/local/cloudberry/bin/gpdemo && ! -d "$EXT_DIR" ]]; then
     export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
     log "BLDWRAP_POSTGRES_CONF_ADDONS set to: $BLDWRAP_POSTGRES_CONF_ADDONS"
   fi
-  work=$(mktemp -d)
+  work="${HOME}/gpdemo"
+  mkdir -p "$work"
   cd "$work"
   /usr/local/cloudberry/bin/gpdemo
   if [[ "${FSYNC_OFF:-0}" == "1" ]]; then
@@ -96,5 +97,7 @@ fi
 
 log "Running: make create-demo-cluster"
 make create-demo-cluster
+mkdir -p "${HOME}/gpdemo"
+cp gpAux/gpdemo/gpdemo-env.sh "${HOME}/gpdemo/gpdemo-env.sh"
 
 section_complete "create demo cluster" "$start_time"

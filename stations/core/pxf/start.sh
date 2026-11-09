@@ -7,11 +7,13 @@ if [[ "$NAME" != "pxf" ]]; then
 fi
 # shellcheck disable=SC1091
 source /usr/local/cloudberry/cloudberry-env.sh
-demo=$(find "$HOME" /usr/local/cloudberry -name gpdemo-env.sh 2>/dev/null | head -1)
-if [[ -z "$demo" ]]; then
-  echo "[pxf-start] ERROR: gpdemo-env.sh not found" >&2
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck disable=SC1091
+source "$script_dir/../../../lib/gpdemo-env.sh"
+demo=$(gpdemo_env_file) || {
+  echo "[pxf-start] ERROR: gpdemo-env.sh not found at ${HOME}/gpdemo/gpdemo-env.sh" >&2
   exit 1
-fi
+}
 # shellcheck disable=SC1090
 source "$demo"
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
