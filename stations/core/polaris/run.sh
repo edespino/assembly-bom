@@ -26,6 +26,10 @@ if [[ -f "$run_home/polaris.pid" ]]; then
 fi
 pkill -f 'quarkus-run.jar' 2>/dev/null || true
 mkdir -p "$run_home"
+if [[ ! -x /usr/lib/jvm/java-21-openjdk/bin/java ]]; then
+  echo "[polaris-run] ERROR: Java 21 is not on this image at /usr/lib/jvm/java-21-openjdk" >&2
+  exit 1
+fi
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 export PATH="${JAVA_HOME}/bin:${PATH}"
 export AWS_REGION=us-west-2

@@ -7,7 +7,8 @@ if [[ "$NAME" != "polaris" ]]; then
   exit 1
 fi
 if [[ ! -x /usr/lib/jvm/java-21-openjdk/bin/java ]]; then
-  sudo dnf install -y java-21-openjdk-devel
+  echo "[polaris-build] ERROR: Java 21 is not on this image at /usr/lib/jvm/java-21-openjdk" >&2
+  exit 1
 fi
 PARTS_DIR="${PARTS_DIR:-$HOME/bom-parts}"
 gradlew=$(find "$PARTS_DIR/$NAME" -maxdepth 3 -type f -name gradlew | head -1)
