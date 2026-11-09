@@ -297,18 +297,13 @@ def add_chart():
     dataset_id = created["id"]
     chart = superset("POST", "/api/v1/chart/", {
         "slice_name": "Planted and ordinary, from the history files",
-        "viz_type": "pie",
+        "viz_type": "table",
         "datasource_id": dataset_id,
         "datasource_type": "table",
         "params": json.dumps({
-            "viz_type": "pie",
-            "groupby": ["kind"],
-            "metric": {
-                "expressionType": "SIMPLE",
-                "column": {"column_name": "payments"},
-                "aggregate": "SUM",
-                "label": "payments",
-            },
+            "viz_type": "table",
+            "query_mode": "raw",
+            "all_columns": ["kind", "payments"],
             "datasource": f"{dataset_id}__table",
             "row_limit": 10,
         }),
