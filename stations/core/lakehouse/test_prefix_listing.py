@@ -27,6 +27,11 @@ class PrefixListingTest(unittest.TestCase):
             publish.prefix_listing(1, "", "AccessDenied")
         self.assertIn("AccessDenied", str(caught.exception))
 
+    def test_exit_0_with_stderr_is_a_failure(self):
+        with self.assertRaises(SystemExit) as caught:
+            publish.prefix_listing(0, "", "warning")
+        self.assertIn("warning", str(caught.exception))
+
     def test_exit_1_with_stdout_is_a_failure(self):
         with self.assertRaises(SystemExit) as caught:
             publish.prefix_listing(1, "not-empty\n", "")

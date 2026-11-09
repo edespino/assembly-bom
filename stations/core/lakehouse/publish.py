@@ -26,9 +26,11 @@ def run(cmd, **kwargs):
 
 def prefix_listing(returncode, stdout, stderr):
     """A missing prefix exits 1 with empty output. That is an empty listing."""
-    if returncode == 0 or (returncode == 1 and not stderr and not stdout):
+    if stderr:
+        raise SystemExit(stderr)
+    if returncode == 0 or (returncode == 1 and not stdout):
         return stdout
-    raise SystemExit(stderr or stdout or f"exit {returncode}")
+    raise SystemExit(stdout or f"exit {returncode}")
 
 
 def list_prefix(prefix):
