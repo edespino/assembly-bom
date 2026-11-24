@@ -271,6 +271,7 @@ products:
             - extract-source
             - apache-compare-to-tag
             - apache-validate-compliance
+            - license-eye
             - apache-rat
             - apache-review-license-compliance
             - review-binary
