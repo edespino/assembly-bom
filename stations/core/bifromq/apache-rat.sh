@@ -2,7 +2,8 @@
 # Header scan with the project's own apache-rat-plugin.
 # The root pom declares the plugin (excludes, excludeSubProjects=false) and
 # the tree ships mvnw. Run the wrapper with the pom source Java (17).
-# The license-eye header check is a separate step: license-eye.
+# The source archive does not contain .licenserc.yaml (the tag does), so the
+# project's license-eye config is not an archive check.
 # Scan a fresh extract. A post-build tree has target/ and is not the archive.
 set -euo pipefail
 
