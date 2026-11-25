@@ -23,11 +23,12 @@ docker compose --profile examples up -d
 echo "[texera-deploy-compose] Waiting 60s for containers"
 sleep 60
 docker compose --profile examples ps
-# A service that exited non-zero fails the checklist item.
-unhealthy=$(docker compose --profile examples ps --status exited --status dead --format '{{.Service}} {{.Status}}' || true)
-if [[ -n "$unhealthy" ]]; then
-  echo "[texera-deploy-compose] ERROR: exited or dead services:"
-  printf '%s\n' "$unhealthy"
+# Init containers exit 0 on purpose. Fail only a non-zero exit, a dead
+# container, or an unhealthy healthcheck.
+bad=$(docker compose --profile examples ps -a --format '{{.Service}}|{{.ExitCode}}|{{.Status}}' | awk -F'|' '$2 != "0" || $3 ~ /[Dd]ead|[Uu]nhealthy/ { print }')
+if [[ -n "$bad" ]]; then
+  echo "[texera-deploy-compose] ERROR: failed services:"
+  printf '%s\n' "$bad"
   echo "[texera-deploy-compose] RESULT: FAIL"
   exit 1
 fi
