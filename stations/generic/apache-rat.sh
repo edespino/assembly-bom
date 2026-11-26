@@ -179,7 +179,7 @@ run_rat_without_pom() {
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>0.16.1</version>
+        <version>0.18</version>
         <configuration>
           <basedir>${basedir_xml}</basedir>
           <reportFile>${report_xml}</reportFile>
@@ -195,9 +195,17 @@ EOF
   set +e
   (
     IFS=$' \t\n'
-    mvn -f "$pom_dir/pom.xml" org.apache.rat:apache-rat-plugin:0.16.1:check 2>&1 | tee "$log"
+    mvn -f "$pom_dir/pom.xml" -B -ntp -fn org.apache.rat:apache-rat-plugin:0.18:check 2>&1 | tee "$log"
+    pipe=("${PIPESTATUS[@]}")
+    [[ "${pipe[1]}" -eq 0 ]] || exit 1
+    exit "${pipe[0]}"
   )
+  mvn_rc=$?
   set -e
+  if [[ "$mvn_rc" -ne 0 ]]; then
+    echo "[apache-rat] ❌ Maven exit ${mvn_rc} for ${tree}"
+    exit 1
+  fi
   echo "[apache-rat] Maven finished for ${tree}"
   RAT_REPORT_FOR["$extracted"]="$report"
 }
