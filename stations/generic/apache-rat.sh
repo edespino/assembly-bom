@@ -262,7 +262,7 @@ EOF
   set +e
   (
     IFS=$' \t\n'
-    mvn -f "$pom_dir/pom.xml" -B -ntp -fn org.apache.rat:apache-rat-plugin:0.18:check 2>&1 | tee "$log"
+    mvn -f "$pom_dir/pom.xml" -B -ntp org.apache.rat:apache-rat-plugin:0.18:check 2>&1 | tee "$log"
     pipe=("${PIPESTATUS[@]}")
     [[ "${pipe[1]}" -eq 0 ]] || exit 1
     exit "${pipe[0]}"
@@ -364,6 +364,19 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
       TOTAL_GENERATED=$((TOTAL_GENERATED + $(echo "$line" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')))
       TOTAL_APACHE_LICENSED=$((TOTAL_APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
     done <<< "$RAT_SUMMARIES"
+  else
+    # RAT 0.18 does not print "Rat check: Summary". A missing count is not zero.
+    counter_count=$(grep -E 'Unexpected count for UNAPPROVED' "$MAVEN_OUTPUT" | sed -n 's/.*Count: *\([0-9][0-9]*\).*/\1/p' | awk '{s+=$1} END {print s+0}')
+    if grep -q 'Build failures were ignored' "$MAVEN_OUTPUT"; then
+      echo "[apache-rat] ❌ Maven ignored a RAT failure for $(basename "$EXTRACTED_DIR")"
+      exit 1
+    fi
+    if [[ -n "$counter_count" && "$counter_count" -gt 0 ]]; then
+      TOTAL_UNKNOWN=$((TOTAL_UNKNOWN + counter_count))
+    elif grep -q 'BUILD FAILURE' "$MAVEN_OUTPUT"; then
+      echo "[apache-rat] ❌ RAT 0.18 failed and the unapproved count was not readable for $(basename "$EXTRACTED_DIR")"
+      exit 1
+    fi
   fi
 
   # Extract file statistics from every RAT report for this tree.
