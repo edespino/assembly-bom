@@ -1,0 +1,26 @@
+*****************************************************
+Summary
+*****************************************************
+Generated at: 2026-11-27T02:23:33-08:00
+    by Apache Creadur RAT::Core 0.18 (Apache Software Foundation)
+
+-----------------------------------------------------
+Counters
+-----------------------------------------------------
+    (Entries starting with '!' exceed the minimum or maximum values)
+  Approved:           22    A count of approved licenses.
+! Unapproved:         1    A count of unapproved licenses.
+
+*****************************************************
+Files with unapproved licenses
+*****************************************************
+
+  /.editorconfig
+
+*****************************************************
+Detail
+*****************************************************
+
+! /.editorconfig
+  S         text/plain    ISO-8859-1
+    ?????    ?????         Unknown license (Unapproved)

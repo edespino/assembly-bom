@@ -6,6 +6,9 @@
 # A png marked B is an image, not a compiled binary, and it is not excluded.
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../generic" && pwd)/rat-verdict.sh"
+
 NAME="${NAME:?Missing NAME environment variable}"
 if [[ "$NAME" != "jcasbin" ]]; then
   echo "[jcasbin-rat] ERROR: this step is jcasbin-only (NAME=${NAME})" >&2
@@ -100,6 +103,13 @@ for tree in "${SELECTED[@]}"; do
   grep -E '^[[:space:]]*!' "$report" | sed 's/^/[jcasbin-rat]   /' || true
   if [[ "$rc" -ne 0 ]]; then
     echo "[jcasbin-rat] FAIL: mvn org.apache.rat:apache-rat-plugin:0.18:check exited $rc"
+    fail=1
+  fi
+  if ! report_count=$(rat_report_unapproved_count "$report"); then
+    echo "[jcasbin-rat] ERROR: unrecognized RAT summary in $report"
+    fail=1
+  elif [[ "$report_count" -ne 0 ]]; then
+    echo "[jcasbin-rat] FAIL: unapproved count $report_count"
     fail=1
   fi
 
