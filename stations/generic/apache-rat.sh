@@ -86,13 +86,61 @@ files_scanned() {
   printf '%s\n' "${markers:-0}"
 }
 
-resolve_b_path() {
+# RAT 0.18 writes the path on one line and "B <media-type>" on the next,
+# plus a legend line "B Binary file". The filename is the path line.
+# A B remainder that is a media type or the words Binary file is not a path.
+rat_binary_paths() {
+  local report=$1
+  awk '
+    function is_media(s) {
+      return s ~ /^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*\/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$/
+    }
+    {
+      line=$0
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      if (line == "") next
+      if (line ~ /^B[[:space:]]+/) {
+        rest=line
+        sub(/^B[[:space:]]+/, "", rest)
+        if (rest == "Binary file") {
+          pending=""
+          next
+        }
+        if (is_media(rest)) {
+          if (pending != "") print pending
+          pending=""
+          next
+        }
+        print rest
+        pending=""
+        next
+      }
+      if (line ~ /^(S|N|AL|!|\?)[[:space:]]/) next
+      if (line ~ /^(Notes|Binaries|Archives|Standards|Unapproved|Unknown):/) next
+      pending=line
+    }
+  ' "$report"
+}
+
+# A leading slash in a RAT 0.18 path is relative to the extract, not the host root.
+resolve_rat_path() {
   local dir=$1 rel=$2
-  if [[ "$rel" == /* ]]; then
-    printf '%s\n' "$rel"
-  else
+  local stripped
+  rel=${rel#./}
+  if [[ -e "$dir/$rel" ]]; then
     printf '%s\n' "$dir/$rel"
+    return
   fi
+  stripped=${rel#/}
+  if [[ -e "$dir/$stripped" ]]; then
+    printf '%s\n' "$dir/$stripped"
+    return
+  fi
+  if [[ "$rel" == /* && -e "$rel" ]]; then
+    printf '%s\n' "$rel"
+    return
+  fi
+  printf '\n'
 }
 
 # Return 0 when the RAT B entry is a compiled artifact.
@@ -532,11 +580,15 @@ for dir in "${SOURCE_DIRS[@]}"; do
         ext="(noext)"
       fi
       BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
-      path=$(resolve_b_path "$dir" "$rel")
+      path=$(resolve_rat_path "$dir" "$rel")
+      if [[ -z "$path" ]]; then
+        echo "[apache-rat] unresolved binary path, not counted as compiled: $rel"
+        continue
+      fi
       if is_compiled_binary "$path"; then
         COMPILED_BINARIES+=("${tree_name}:${rel}")
       fi
-    done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+    done < <(rat_binary_paths "$RAT_REPORT")
   done
   echo "[apache-rat]   $tree_name: $tree_count binary"
 done
