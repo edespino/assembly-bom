@@ -365,8 +365,16 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
       TOTAL_APACHE_LICENSED=$((TOTAL_APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
     done <<< "$RAT_SUMMARIES"
   else
-    # RAT 0.18 does not print "Rat check: Summary". A missing count is not zero.
-    counter_count=$(grep -E 'Unexpected count for UNAPPROVED' "$MAVEN_OUTPUT" | sed -n 's/.*Count: *\([0-9][0-9]*\).*/\1/p' | awk '{s+=$1} END {print s+0}')
+    # RAT 0.18 does not print "Rat check: Summary". A missing count is not
+    # a failure. grep exiting 1 must not abort a clean scan under pipefail.
+    counter_count=$(awk '
+      /Unexpected count for UNAPPROVED/ {
+        if (match($0, /Count: *[0-9]+/)) {
+          s += substr($0, RSTART + 7) + 0
+        }
+      }
+      END { print s + 0 }
+    ' "$MAVEN_OUTPUT")
     if grep -q 'Build failures were ignored' "$MAVEN_OUTPUT"; then
       echo "[apache-rat] ❌ Maven ignored a RAT failure for $(basename "$EXTRACTED_DIR")"
       exit 1
