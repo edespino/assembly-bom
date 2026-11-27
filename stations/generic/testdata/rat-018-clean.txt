@@ -1,0 +1,10 @@
+*****************************************************
+Summary
+*****************************************************
+    by Apache Creadur RAT::Core 0.18 (Apache Software Foundation)
+
+-----------------------------------------------------
+Counters
+-----------------------------------------------------
+  Approved:           22    A count of approved licenses.
+  Unapproved:         0    A count of unapproved licenses.

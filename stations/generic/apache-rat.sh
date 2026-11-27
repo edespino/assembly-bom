@@ -2,6 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/rat-verdict.sh"
+
 # Get component name from environment (exported by assemble.sh)
 COMPONENT_NAME="${NAME:?Missing NAME environment variable}"
 
@@ -42,6 +45,10 @@ fi
 # Some projects use 'mvn validate' with RAT bound to lifecycle
 # Others use 'mvn apache-rat:check' for direct invocation
 RAT_MAVEN_COMMAND="${RAT_MAVEN_COMMAND:-apache-rat:check}"
+if [[ "$RAT_MAVEN_COMMAND" == *-fn* || "$RAT_MAVEN_COMMAND" == *--fail-never* ]]; then
+  echo "[apache-rat] ❌ RAT_MAVEN_COMMAND must not pass -fn. A missing failure is not a pass."
+  exit 1
+fi
 
 echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 1: Running Apache RAT on All Sources"
@@ -86,8 +93,75 @@ files_scanned() {
   printf '%s\n' "${markers:-0}"
 }
 
-resolve_b_path() {
-  local dir=$1 rel=$2
+# RAT 0.17 and 0.18 print the path on its own line and "B <media-type>" on
+# the next, plus a legend line "B Binary file". RAT 0.16.1 prints the path
+# on the B line. A media-type regex also matches a one-slash path such as
+# lib/foo.jar, so the era is detected from the report, not from that regex.
+rat_report_era() {
+  local report=$1
+  if grep -Eq '^[[:space:]]*B[[:space:]]+Binary file[[:space:]]*$' "$report" \
+    || grep -q 'by Apache Creadur RAT' "$report"; then
+    echo new
+    return
+  fi
+  echo old
+}
+
+rat_binary_paths() {
+  local report=$1
+  if [[ "$(rat_report_era "$report")" == old ]]; then
+    sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$report"
+    return
+  fi
+  awk '
+    {
+      line=$0
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      if (line == "") next
+      if (line ~ /^B[[:space:]]+/) {
+        rest=line
+        sub(/^B[[:space:]]+/, "", rest)
+        if (rest == "Binary file") {
+          pending=""
+          next
+        }
+        if (pending != "") print pending
+        pending=""
+        next
+      }
+      if (line ~ /^(S|N|AL|!|\?)[[:space:]]/) next
+      if (line ~ /^(Notes|Binaries|Archives|Standards|Unapproved|Unknown):/) next
+      pending=line
+    }
+  ' "$report"
+}
+
+# A leading slash in a RAT 0.17 or 0.18 name is relative to the report base,
+# not the host root. A Maven module report lives at <module>/target/rat.txt.
+# An older report's absolute path is left absolute, which is what main did.
+# A missing file still returns a path so the suffix check can fail closed.
+resolve_rat_path() {
+  local dir=$1 rel=$2 report=${3:-}
+  local base stripped
+  rel=${rel#./}
+  if [[ -n "$report" && "$(rat_report_era "$report")" == new ]]; then
+    if [[ "$report" == */target/rat.txt ]]; then
+      base=${report%/target/rat.txt}
+    else
+      base=$dir
+    fi
+    stripped=${rel#/}
+    if [[ -e "$base/$stripped" ]]; then
+      printf '%s\n' "$base/$stripped"
+      return
+    fi
+    if [[ "$base" != "$dir" && -e "$dir/$stripped" ]]; then
+      printf '%s\n' "$dir/$stripped"
+      return
+    fi
+    printf '%s\n' "$base/$stripped"
+    return
+  fi
   if [[ "$rel" == /* ]]; then
     printf '%s\n' "$rel"
   else
@@ -179,7 +253,7 @@ run_rat_without_pom() {
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>0.16.1</version>
+        <version>0.18</version>
         <configuration>
           <basedir>${basedir_xml}</basedir>
           <reportFile>${report_xml}</reportFile>
@@ -195,14 +269,23 @@ EOF
   set +e
   (
     IFS=$' \t\n'
-    mvn -f "$pom_dir/pom.xml" org.apache.rat:apache-rat-plugin:0.16.1:check 2>&1 | tee "$log"
+    mvn -f "$pom_dir/pom.xml" -B -ntp org.apache.rat:apache-rat-plugin:0.18:check 2>&1 | tee "$log"
+    pipe=("${PIPESTATUS[@]}")
+    [[ "${pipe[1]}" -eq 0 ]] || exit 1
+    exit "${pipe[0]}"
   )
+  mvn_rc=$?
   set -e
+  if [[ "$mvn_rc" -ne 0 ]]; then
+    echo "[apache-rat] ❌ Maven exit ${mvn_rc} for ${tree}"
+    exit 1
+  fi
   echo "[apache-rat] Maven finished for ${tree}"
   RAT_REPORT_FOR["$extracted"]="$report"
 }
 
 # Process each source directory
+MAVEN_EXIT_FAILED=0
 for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
   echo "[apache-rat] ----------------------------------------"
   echo "[apache-rat] Processing: ${EXTRACTED_DIR#$COMPONENT_DIR/}"
@@ -246,6 +329,10 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
 
   echo ""
   echo "[apache-rat] Maven exit code: $RAT_EXIT_CODE"
+  if [[ "$RAT_EXIT_CODE" -ne 0 ]]; then
+    echo "[apache-rat] ❌ Maven exit ${RAT_EXIT_CODE} is not a pass for $(basename "$EXTRACTED_DIR")"
+    MAVEN_EXIT_FAILED=1
+  fi
   require_scanned "$EXTRACTED_DIR"
   echo ""
 done
@@ -259,6 +346,8 @@ echo ""
 # Aggregate statistics from all source directories
 TOTAL_UNAPPROVED=0
 TOTAL_UNKNOWN=0
+REPORT_UNAPPROVED=0
+LOG_BLOCKED=0
 TOTAL_GENERATED=0
 TOTAL_APACHE_LICENSED=0
 TOTAL_FILES=0
@@ -289,7 +378,40 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
       TOTAL_GENERATED=$((TOTAL_GENERATED + $(echo "$line" | sed -n 's/.*generated: \([0-9]*\).*/\1/p')))
       TOTAL_APACHE_LICENSED=$((TOTAL_APACHE_LICENSED + $(echo "$line" | sed -n 's/.*approved: \([0-9]*\).*/\1/p')))
     done <<< "$RAT_SUMMARIES"
+  else
+    # RAT 0.18 does not print "Rat check: Summary". A missing count is not
+    # a failure. grep exiting 1 must not abort a clean scan under pipefail.
+    counter_count=$(awk '
+      /Unexpected count for UNAPPROVED/ {
+        if (match($0, /Count: *[0-9]+/)) {
+          piece = substr($0, RSTART, RLENGTH)
+        sub(/^Count: */, "", piece)
+        s += piece + 0
+        }
+      }
+      END { print s + 0 }
+    ' "$MAVEN_OUTPUT")
+    if [[ -n "$counter_count" && "$counter_count" -gt 0 ]]; then
+      TOTAL_UNKNOWN=$((TOTAL_UNKNOWN + counter_count))
+    fi
   fi
+
+  if rat_maven_log_blocks_pass "$MAVEN_OUTPUT"; then
+    echo "[apache-rat] ❌ Maven log is not a pass for $(basename "$EXTRACTED_DIR")"
+    LOG_BLOCKED=1
+  fi
+  mapfile -t tree_reports < <(all_reports "$EXTRACTED_DIR")
+  if [[ ${#tree_reports[@]} -eq 0 ]]; then
+    echo "[apache-rat] ❌ No RAT report while counting unapproved files in $(basename "$EXTRACTED_DIR")"
+    exit 1
+  fi
+  for RAT_REPORT in "${tree_reports[@]}"; do
+    if ! report_count=$(rat_report_unapproved_count "$RAT_REPORT"); then
+      echo "[apache-rat] ❌ Unrecognized RAT summary in $RAT_REPORT"
+      exit 1
+    fi
+    REPORT_UNAPPROVED=$((REPORT_UNAPPROVED + report_count))
+  done
 
   # Extract file statistics from every RAT report for this tree.
   while IFS= read -r RAT_REPORT; do
@@ -304,7 +426,11 @@ done
 
 # Use aggregated totals for reporting
 UNAPPROVED=$TOTAL_UNAPPROVED
-UNKNOWN=$TOTAL_UNKNOWN
+if [[ "$REPORT_UNAPPROVED" -gt 0 ]]; then
+  UNKNOWN=$REPORT_UNAPPROVED
+else
+  UNKNOWN=$((TOTAL_UNKNOWN + TOTAL_UNAPPROVED))
+fi
 GENERATED=$TOTAL_GENERATED
 APACHE_LICENSED=$TOTAL_APACHE_LICENSED
 TOTAL_FILES=$TOTAL_FILES
@@ -357,8 +483,7 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
 
   if [[ -n "$ALL_RAT_FILES" ]]; then
     while IFS= read -r rat_file; do
-      # Files with unknown licenses are marked with '!?????' in RAT report
-      MODULE_UNKNOWN=$(grep -E '^\s+!\?\?\?\?\?' "$rat_file" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
+      MODULE_UNKNOWN=$(rat_unapproved_paths "$rat_file" || true)
       if [[ -n "$MODULE_UNKNOWN" ]]; then
         # Prefix with source directory name for clarity
         SOURCE_NAME=$(basename "$EXTRACTED_DIR")
@@ -469,7 +594,7 @@ Result:
 -------
 EOF
 
-if [[ $NEEDS_ATTENTION -eq 0 ]]; then
+if [[ $NEEDS_ATTENTION -eq 0 && $LOG_BLOCKED -eq 0 && $MAVEN_EXIT_FAILED -eq 0 ]]; then
   echo "✅ PASSED - All files have appropriate license headers" >> "$SUMMARY_FILE"
   echo ""
   echo "[apache-rat] ✅ PASSED - All files have appropriate license headers"
@@ -532,11 +657,11 @@ for dir in "${SOURCE_DIRS[@]}"; do
         ext="(noext)"
       fi
       BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
-      path=$(resolve_b_path "$dir" "$rel")
+      path=$(resolve_rat_path "$dir" "$rel" "$RAT_REPORT")
       if is_compiled_binary "$path"; then
         COMPILED_BINARIES+=("${tree_name}:${rel}")
       fi
-    done < <(sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$RAT_REPORT")
+    done < <(rat_binary_paths "$RAT_REPORT")
   done
   echo "[apache-rat]   $tree_name: $tree_count binary"
 done
@@ -604,6 +729,9 @@ if [[ "$VALIDATION_PASSED" == "true" ]]; then
 fi
 
 echo "[apache-rat]"
+if [[ ${MAVEN_EXIT_FAILED:-0} -ne 0 || ${LOG_BLOCKED:-0} -ne 0 ]]; then
+  echo "[apache-rat] ❌ FAILED - Maven did not finish a clean RAT scan"
+fi
 if [[ ${NEEDS_ATTENTION:-0} -ne 0 ]]; then
   echo "[apache-rat] ❌ FAILED - Files missing license headers must be fixed or excluded"
   echo "[apache-rat] Unknown licenses: ${UNKNOWN_LIST:-$SUMMARY_FILE}"

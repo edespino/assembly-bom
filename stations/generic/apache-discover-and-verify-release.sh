@@ -45,6 +45,22 @@ else
   exit 1
 fi
 
+# ATR serves the file list at the URL with no trailing slash, and the hrefs
+# are absolute paths. A dist directory listing is unchanged: this runs only
+# when that listing has no archive href.
+if [[ -z "$ARTIFACTS" ]]; then
+  echo "[discover-verify] Directory listing empty. Trying $RELEASE_URL without a trailing slash."
+  page=""
+  if command -v curl &> /dev/null; then
+    page=$(curl -fsSL "$RELEASE_URL" || true)
+  elif command -v wget &> /dev/null; then
+    page=$(wget -q -O - "$RELEASE_URL" || true)
+  fi
+  if [[ -n "$page" ]]; then
+    ARTIFACTS=$(printf '%s\n' "$page" | grep -oP 'href="\K[^"]+' | grep -E '\.tar\.gz$|\.tgz$|\.tar\.bz2$|\.tbz2$|\.tar\.xz$|\.txz$|\.zip$' | awk -F/ '{print $NF}' || true)
+  fi
+fi
+
 if [[ -z "$ARTIFACTS" ]]; then
   echo "[discover-verify] ❌ No artifacts found at $RELEASE_URL"
   exit 1
