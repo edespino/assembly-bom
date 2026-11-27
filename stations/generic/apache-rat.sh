@@ -86,15 +86,27 @@ files_scanned() {
   printf '%s\n' "${markers:-0}"
 }
 
-# RAT 0.18 writes the path on one line and "B <media-type>" on the next,
-# plus a legend line "B Binary file". The filename is the path line.
-# A B remainder that is a media type or the words Binary file is not a path.
+# RAT 0.17 and 0.18 print the path on its own line and "B <media-type>" on
+# the next, plus a legend line "B Binary file". RAT 0.16.1 prints the path
+# on the B line. A media-type regex also matches a one-slash path such as
+# lib/foo.jar, so the era is detected from the report, not from that regex.
+rat_report_era() {
+  local report=$1
+  if grep -Eq '^[[:space:]]*B[[:space:]]+Binary file[[:space:]]*$' "$report" \
+    || grep -q 'by Apache Creadur RAT' "$report"; then
+    echo new
+    return
+  fi
+  echo old
+}
+
 rat_binary_paths() {
   local report=$1
+  if [[ "$(rat_report_era "$report")" == old ]]; then
+    sed -n 's/^[[:space:]]*B[[:space:]]\{1,\}//p' "$report"
+    return
+  fi
   awk '
-    function is_media(s) {
-      return s ~ /^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*\/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$/
-    }
     {
       line=$0
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
@@ -106,12 +118,7 @@ rat_binary_paths() {
           pending=""
           next
         }
-        if (is_media(rest)) {
-          if (pending != "") print pending
-          pending=""
-          next
-        }
-        print rest
+        if (pending != "") print pending
         pending=""
         next
       }
@@ -122,25 +129,37 @@ rat_binary_paths() {
   ' "$report"
 }
 
-# A leading slash in a RAT 0.18 path is relative to the extract, not the host root.
+# A leading slash in a RAT 0.17 or 0.18 name is relative to the report base,
+# not the host root. A Maven module report lives at <module>/target/rat.txt.
+# An older report's absolute path is left absolute, which is what main did.
+# A missing file still returns a path so the suffix check can fail closed.
 resolve_rat_path() {
-  local dir=$1 rel=$2
-  local stripped
+  local dir=$1 rel=$2 report=${3:-}
+  local base stripped
   rel=${rel#./}
-  if [[ -e "$dir/$rel" ]]; then
-    printf '%s\n' "$dir/$rel"
+  if [[ -n "$report" && "$(rat_report_era "$report")" == new ]]; then
+    if [[ "$report" == */target/rat.txt ]]; then
+      base=${report%/target/rat.txt}
+    else
+      base=$dir
+    fi
+    stripped=${rel#/}
+    if [[ -e "$base/$stripped" ]]; then
+      printf '%s\n' "$base/$stripped"
+      return
+    fi
+    if [[ "$base" != "$dir" && -e "$dir/$stripped" ]]; then
+      printf '%s\n' "$dir/$stripped"
+      return
+    fi
+    printf '%s\n' "$base/$stripped"
     return
   fi
-  stripped=${rel#/}
-  if [[ -e "$dir/$stripped" ]]; then
-    printf '%s\n' "$dir/$stripped"
-    return
-  fi
-  if [[ "$rel" == /* && -e "$rel" ]]; then
+  if [[ "$rel" == /* ]]; then
     printf '%s\n' "$rel"
-    return
+  else
+    printf '%s\n' "$dir/$rel"
   fi
-  printf '\n'
 }
 
 # Return 0 when the RAT B entry is a compiled artifact.
@@ -580,11 +599,7 @@ for dir in "${SOURCE_DIRS[@]}"; do
         ext="(noext)"
       fi
       BINARY_EXT_COUNTS["$ext"]=$(( ${BINARY_EXT_COUNTS[$ext]:-0} + 1 ))
-      path=$(resolve_rat_path "$dir" "$rel")
-      if [[ -z "$path" ]]; then
-        echo "[apache-rat] unresolved binary path, not counted as compiled: $rel"
-        continue
-      fi
+      path=$(resolve_rat_path "$dir" "$rel" "$RAT_REPORT")
       if is_compiled_binary "$path"; then
         COMPILED_BINARIES+=("${tree_name}:${rel}")
       fi
