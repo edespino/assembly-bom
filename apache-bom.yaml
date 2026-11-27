@@ -246,6 +246,33 @@ products:
             - review-binary
             - build
 
+        # Apache XTable 0.5.0-incubating rc2. A new candidate replaces this env block.
+        # The staged archive is apache-xtable-0.5.0-incubating.src.tgz.
+        # Generic discover treats a .src.tgz name as a binary. Do not list
+        # apache-extract-discovered or apache-validate-release-structure.
+        - name: xtable
+          env:
+            RELEASE_VERSION: "0.5.0"
+            RELEASE_CANDIDATE: "rc2"
+            RELEASE_URL: "https://dist.apache.org/repos/dist/dev/incubator/xtable/0.5.0-incubating-rc2"
+            KEYS_URL: "https://dist.apache.org/repos/dist/release/incubator/xtable/KEYS"
+            SOURCE_REPO: "https://github.com/apache/incubator-xtable.git"
+            SOURCE_TAG: "release-0.5.0-incubating-rc2"
+            RELEASE_COMMIT: "48b349561f5df1b71d0e851dbbe930f043b6a794"
+            SIGNING_KEY_ID: "F1901931503AB216"
+            STAGING_URL: "https://repository.apache.org/content/repositories/orgapachextable-1018"
+          steps:
+            - apache-require-source-identity
+            - apache-discover-and-verify-release
+            - verify-signatures
+            - extract-source
+            - apache-compare-to-tag
+            - apache-validate-compliance
+            - apache-rat
+            - apache-review-license-compliance
+            - verify-staged
+            - build
+
         # Apache Texera 1.2.1-incubating RC2. One source tar and one
         # Docker Compose bundle. Do not use apache-extract-discovered or
         # apache-validate-release-structure: the bundle is not a second
