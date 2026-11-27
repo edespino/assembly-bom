@@ -93,6 +93,10 @@ print(f"[xtable-staging] CHECKSUM_FILES: sha1={have_sha1} md5={have_md5} sha512=
 
 artifacts = [u for u in files if u.endswith((".jar", ".pom")) and not u.endswith((".sha1", ".md5", ".sha512", ".asc"))]
 print(f"[xtable-staging] ARTIFACTS: {len(artifacts)}")
+if not artifacts:
+    print("[xtable-staging] ERROR: no .jar or .pom found under STAGING_URL")
+    print("[xtable-staging] RESULT: FAIL")
+    sys.exit(1)
 fail = 0
 jdks = {}
 origins = []
