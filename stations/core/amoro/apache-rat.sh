@@ -206,6 +206,10 @@ if [[ "$unapproved_total" -ne 0 ]]; then
   echo "[amoro-rat] ERROR: unapproved files under the project's pom excludes"
   fail=1
 fi
+if [[ "$rat_rc" -ne 0 ]]; then
+  echo "[amoro-rat] ERROR: Maven did not finish (exit $rat_rc)"
+  fail=1
+fi
 if rat_maven_log_blocks_pass "$log"; then
   echo "[amoro-rat] ERROR: Maven log is not a pass"
   fail=1

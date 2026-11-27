@@ -37,6 +37,16 @@ fi
 if rat_maven_log_blocks_pass "$data/maven-clean.log"; then
   fail "clean Maven log blocked a pass"
 fi
+if rat_maven_log_blocks_pass "$data/maven-no-result.log"; then
+  :
+else
+  fail "a log with no Maven result line did not block a pass"
+fi
+if rat_maven_log_blocks_pass "$data/maven-count-nospace.log"; then
+  :
+else
+  fail "Count:1 with no space did not block a pass"
+fi
 
 # A clean log returns 1. That must not abort under pipefail.
 (
@@ -78,5 +88,36 @@ seata="$root/stations/core/seata/apache-rat.sh"
 grep -q 'Build failures were ignored.' "$seata" || fail "seata no longer fails an ignored Maven failure"
 grep -q 'unrecognized RAT summary' "$seata" || fail "seata treats a missing count as zero"
 grep -q 'UNAPPROVED_TOTAL' "$seata" || fail "seata no longer totals the report count"
+grep -q 'Maven did not finish' "$amoro" || fail "amoro ignores a non-zero Maven exit"
+grep -q -- '--fail-never' "$generic" || fail "generic station does not reject --fail-never"
+grep -q 'Maven exit ${RAT_EXIT_CODE} is not a pass' "$generic" || fail "generic station ignores a non-zero Maven exit"
+
+run_stub() {
+  local stub_exit=$1
+  local stub_log=$2
+  local tmp stub_bin out rc
+  tmp=$(mktemp -d)
+  stub_bin="$tmp/bin"
+  mkdir -p "$stub_bin" "$tmp/parts/locktest/tree"
+  printf '%s\n' '<project/>' > "$tmp/parts/locktest/tree/pom.xml"
+  cat > "$stub_bin/mvn" << EOF
+#!/bin/sh
+mkdir -p target
+cp "$data/rat-stub-clean.txt" target/rat.txt
+cat "$stub_log"
+exit $stub_exit
+EOF
+  chmod +x "$stub_bin/mvn"
+  set +e
+  out=$(PATH="$stub_bin:$PATH" NAME=locktest PARTS_DIR="$tmp/parts" "$BASH" "$generic" 2>&1)
+  rc=$?
+  set -e
+  rm -rf "$tmp"
+  printf '%s\n' "$out" | grep -q 'PASSED - All files have appropriate license headers' && fail "stub exit $stub_exit printed a pass"
+  [[ "$rc" -ne 0 ]] || fail "stub exit $stub_exit returned 0"
+}
+
+run_stub 0 "$data/maven-no-result.log"
+run_stub 1 "$data/maven-clean.log"
 
 echo "rat-verdict-test: ok"

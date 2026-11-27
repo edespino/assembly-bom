@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Sourced by the RAT stations and by rat-verdict-test.sh.
 # A missing recognized count is a failure, not zero.
 # Do not print a pass from a Maven banner alone.
@@ -31,7 +32,9 @@ rat_maven_log_blocks_pass() {
   count=$(awk '
     /Unexpected count for UNAPPROVED/ {
       if (match($0, /Count: *[0-9]+/)) {
-        s += substr($0, RSTART + 7) + 0
+        piece = substr($0, RSTART, RLENGTH)
+        sub(/^Count: */, "", piece)
+        s += piece + 0
       }
     }
     END { print s + 0 }
@@ -40,6 +43,9 @@ rat_maven_log_blocks_pass() {
     return 0
   fi
   if grep -q 'BUILD FAILURE' "$log"; then
+    return 0
+  fi
+  if ! grep -q 'BUILD SUCCESS' "$log"; then
     return 0
   fi
   return 1
@@ -53,13 +59,19 @@ rat_unapproved_paths() {
       if (p ~ /^\// && !seen[p]++) print p
     }
     /Files with unapproved licenses/ { grab=1; next }
-    grab && /Detail/ { grab=0; next }
+    grab && /^[[:space:]]*$/ { next }
+    grab && /^[*]+$/ { if (seen_path) grab=0; next }
+    grab && /^[[:space:]]*Detail[[:space:]]*$/ { grab=0; next }
     grab && /^[[:space:]]+\// {
       sub(/^[[:space:]]+/, "")
       sub(/[[:space:]].*$/, "")
-      emit($0)
+      if ($0 ~ /^\// && $0 !~ /^\/[*\/]/) {
+        seen_path=1
+        emit($0)
+      }
       next
     }
+    grab { grab=0; next }
     /^! \// {
       p=substr($0, 3)
       sub(/[[:space:]].*$/, "", p)

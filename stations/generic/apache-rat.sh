@@ -45,7 +45,7 @@ fi
 # Some projects use 'mvn validate' with RAT bound to lifecycle
 # Others use 'mvn apache-rat:check' for direct invocation
 RAT_MAVEN_COMMAND="${RAT_MAVEN_COMMAND:-apache-rat:check}"
-if [[ "$RAT_MAVEN_COMMAND" == *-fn* ]]; then
+if [[ "$RAT_MAVEN_COMMAND" == *-fn* || "$RAT_MAVEN_COMMAND" == *--fail-never* ]]; then
   echo "[apache-rat] ❌ RAT_MAVEN_COMMAND must not pass -fn. A missing failure is not a pass."
   exit 1
 fi
@@ -285,6 +285,7 @@ EOF
 }
 
 # Process each source directory
+MAVEN_EXIT_FAILED=0
 for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
   echo "[apache-rat] ----------------------------------------"
   echo "[apache-rat] Processing: ${EXTRACTED_DIR#$COMPONENT_DIR/}"
@@ -328,6 +329,10 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
 
   echo ""
   echo "[apache-rat] Maven exit code: $RAT_EXIT_CODE"
+  if [[ "$RAT_EXIT_CODE" -ne 0 ]]; then
+    echo "[apache-rat] ❌ Maven exit ${RAT_EXIT_CODE} is not a pass for $(basename "$EXTRACTED_DIR")"
+    MAVEN_EXIT_FAILED=1
+  fi
   require_scanned "$EXTRACTED_DIR"
   echo ""
 done
@@ -342,6 +347,7 @@ echo ""
 TOTAL_UNAPPROVED=0
 TOTAL_UNKNOWN=0
 REPORT_UNAPPROVED=0
+LOG_BLOCKED=0
 TOTAL_GENERATED=0
 TOTAL_APACHE_LICENSED=0
 TOTAL_FILES=0
@@ -378,26 +384,21 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
     counter_count=$(awk '
       /Unexpected count for UNAPPROVED/ {
         if (match($0, /Count: *[0-9]+/)) {
-          s += substr($0, RSTART + 7) + 0
+          piece = substr($0, RSTART, RLENGTH)
+        sub(/^Count: */, "", piece)
+        s += piece + 0
         }
       }
       END { print s + 0 }
     ' "$MAVEN_OUTPUT")
-    if grep -q 'Build failures were ignored' "$MAVEN_OUTPUT"; then
-      echo "[apache-rat] ❌ Maven ignored a RAT failure for $(basename "$EXTRACTED_DIR")"
-      exit 1
-    fi
     if [[ -n "$counter_count" && "$counter_count" -gt 0 ]]; then
       TOTAL_UNKNOWN=$((TOTAL_UNKNOWN + counter_count))
-    elif grep -q 'BUILD FAILURE' "$MAVEN_OUTPUT"; then
-      echo "[apache-rat] ❌ RAT 0.18 failed and the unapproved count was not readable for $(basename "$EXTRACTED_DIR")"
-      exit 1
     fi
   fi
 
   if rat_maven_log_blocks_pass "$MAVEN_OUTPUT"; then
     echo "[apache-rat] ❌ Maven log is not a pass for $(basename "$EXTRACTED_DIR")"
-    exit 1
+    LOG_BLOCKED=1
   fi
   mapfile -t tree_reports < <(all_reports "$EXTRACTED_DIR")
   if [[ ${#tree_reports[@]} -eq 0 ]]; then
@@ -593,7 +594,7 @@ Result:
 -------
 EOF
 
-if [[ $NEEDS_ATTENTION -eq 0 ]]; then
+if [[ $NEEDS_ATTENTION -eq 0 && $LOG_BLOCKED -eq 0 && $MAVEN_EXIT_FAILED -eq 0 ]]; then
   echo "✅ PASSED - All files have appropriate license headers" >> "$SUMMARY_FILE"
   echo ""
   echo "[apache-rat] ✅ PASSED - All files have appropriate license headers"
@@ -728,6 +729,9 @@ if [[ "$VALIDATION_PASSED" == "true" ]]; then
 fi
 
 echo "[apache-rat]"
+if [[ ${MAVEN_EXIT_FAILED:-0} -ne 0 || ${LOG_BLOCKED:-0} -ne 0 ]]; then
+  echo "[apache-rat] ❌ FAILED - Maven did not finish a clean RAT scan"
+fi
 if [[ ${NEEDS_ATTENTION:-0} -ne 0 ]]; then
   echo "[apache-rat] ❌ FAILED - Files missing license headers must be fixed or excluded"
   echo "[apache-rat] Unknown licenses: ${UNKNOWN_LIST:-$SUMMARY_FILE}"
