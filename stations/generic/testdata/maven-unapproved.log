@@ -1,0 +1,5 @@
+[ERROR] Unexpected count for UNAPPROVED, limit is [0,0].  Count: 1
+Files with unapproved licenses:
+  /.editorconfig
+[INFO] BUILD FAILURE
+[INFO] Build failures were ignored.

@@ -1,0 +1,5 @@
+Notes: 1
+Binaries: 0
+Archives: 0
+Standards: 0
+  Unapproved:         0    A count of unapproved licenses.
