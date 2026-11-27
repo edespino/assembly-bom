@@ -2,6 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/rat-verdict.sh"
+
 # Get component name from environment (exported by assemble.sh)
 COMPONENT_NAME="${NAME:?Missing NAME environment variable}"
 
@@ -42,6 +45,10 @@ fi
 # Some projects use 'mvn validate' with RAT bound to lifecycle
 # Others use 'mvn apache-rat:check' for direct invocation
 RAT_MAVEN_COMMAND="${RAT_MAVEN_COMMAND:-apache-rat:check}"
+if [[ "$RAT_MAVEN_COMMAND" == *-fn* ]]; then
+  echo "[apache-rat] ❌ RAT_MAVEN_COMMAND must not pass -fn. A missing failure is not a pass."
+  exit 1
+fi
 
 echo "[apache-rat] ========================================="
 echo "[apache-rat] Step 1: Running Apache RAT on All Sources"
@@ -334,6 +341,7 @@ echo ""
 # Aggregate statistics from all source directories
 TOTAL_UNAPPROVED=0
 TOTAL_UNKNOWN=0
+REPORT_UNAPPROVED=0
 TOTAL_GENERATED=0
 TOTAL_APACHE_LICENSED=0
 TOTAL_FILES=0
@@ -387,6 +395,23 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
     fi
   fi
 
+  if rat_maven_log_blocks_pass "$MAVEN_OUTPUT"; then
+    echo "[apache-rat] ❌ Maven log is not a pass for $(basename "$EXTRACTED_DIR")"
+    exit 1
+  fi
+  mapfile -t tree_reports < <(all_reports "$EXTRACTED_DIR")
+  if [[ ${#tree_reports[@]} -eq 0 ]]; then
+    echo "[apache-rat] ❌ No RAT report while counting unapproved files in $(basename "$EXTRACTED_DIR")"
+    exit 1
+  fi
+  for RAT_REPORT in "${tree_reports[@]}"; do
+    if ! report_count=$(rat_report_unapproved_count "$RAT_REPORT"); then
+      echo "[apache-rat] ❌ Unrecognized RAT summary in $RAT_REPORT"
+      exit 1
+    fi
+    REPORT_UNAPPROVED=$((REPORT_UNAPPROVED + report_count))
+  done
+
   # Extract file statistics from every RAT report for this tree.
   while IFS= read -r RAT_REPORT; do
     [[ -f "$RAT_REPORT" ]] || continue
@@ -400,7 +425,11 @@ done
 
 # Use aggregated totals for reporting
 UNAPPROVED=$TOTAL_UNAPPROVED
-UNKNOWN=$TOTAL_UNKNOWN
+if [[ "$REPORT_UNAPPROVED" -gt 0 ]]; then
+  UNKNOWN=$REPORT_UNAPPROVED
+else
+  UNKNOWN=$((TOTAL_UNKNOWN + TOTAL_UNAPPROVED))
+fi
 GENERATED=$TOTAL_GENERATED
 APACHE_LICENSED=$TOTAL_APACHE_LICENSED
 TOTAL_FILES=$TOTAL_FILES
@@ -453,8 +482,7 @@ for EXTRACTED_DIR in "${SOURCE_DIRS[@]}"; do
 
   if [[ -n "$ALL_RAT_FILES" ]]; then
     while IFS= read -r rat_file; do
-      # Files with unknown licenses are marked with '!?????' in RAT report
-      MODULE_UNKNOWN=$(grep -E '^\s+!\?\?\?\?\?' "$rat_file" | sed 's/^[[:space:]]*!?????[[:space:]]*//' || true)
+      MODULE_UNKNOWN=$(rat_unapproved_paths "$rat_file" || true)
       if [[ -n "$MODULE_UNKNOWN" ]]; then
         # Prefix with source directory name for clarity
         SOURCE_NAME=$(basename "$EXTRACTED_DIR")

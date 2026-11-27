@@ -6,6 +6,9 @@
 # Compiled-suffix count is taken before Maven writes target/.
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../generic" && pwd)/rat-verdict.sh"
+
 NAME="${NAME:?Missing NAME environment variable}"
 if [[ "$NAME" != "amoro" ]]; then
   echo "[amoro-rat] ERROR: this step is amoro-only (NAME=${NAME})" >&2
@@ -201,6 +204,10 @@ if [[ "$compiled_count" -ne 0 ]]; then
 fi
 if [[ "$unapproved_total" -ne 0 ]]; then
   echo "[amoro-rat] ERROR: unapproved files under the project's pom excludes"
+  fail=1
+fi
+if rat_maven_log_blocks_pass "$log"; then
+  echo "[amoro-rat] ERROR: Maven log is not a pass"
   fail=1
 fi
 if [[ "$fail" -ne 0 ]]; then
