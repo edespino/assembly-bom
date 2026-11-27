@@ -19,20 +19,44 @@ fi
 root="${tops[0]}"
 echo "[texera-deploy-compose] Directory: $root"
 cd "$root"
+# A leftover volume keeps the previous database. Postgres init scripts
+# run only when that volume is empty, so a second run would judge the
+# earlier stack. The bundle README names down -v before up.
+docker compose --profile examples down -v --remove-orphans
 docker compose --profile examples up -d
-echo "[texera-deploy-compose] Waiting 60s for containers"
-sleep 60
-docker compose --profile examples ps
-# Init containers exit 0 on purpose. Fail only a non-zero exit, a dead
-# container, or an unhealthy healthcheck.
-bad=$(docker compose --profile examples ps -a --format '{{.Service}}|{{.ExitCode}}|{{.Status}}' | awk -F'|' '$2 != "0" || $3 ~ /[Dd]ead|[Uu]nhealthy/ { print }')
-if [[ -n "$bad" ]]; then
-  echo "[texera-deploy-compose] ERROR: failed services:"
-  printf '%s\n' "$bad"
-  echo "[texera-deploy-compose] RESULT: FAIL"
-  exit 1
-fi
-running=$(docker compose --profile examples ps --status running --format '{{.Service}}' | sed '/^$/d' | wc -l)
+
+deadline=$((SECONDS + 600))
+while true; do
+  docker compose --profile examples ps -a
+  rows=$(docker compose --profile examples ps -a --format '{{.Service}}|{{.State}}|{{.ExitCode}}|{{.Health}}|{{.Status}}')
+  bad=$(printf '%s\n' "$rows" | awk -F'|' '
+    $2 ~ /[Dd]ead/ || $5 ~ /[Uu]nhealthy/ || $4 ~ /[Uu]nhealthy/ { print; next }
+    $2 ~ /exited/ && $3 != "0" { print }
+  ')
+  if [[ -n "$bad" ]]; then
+    echo "[texera-deploy-compose] ERROR: failed services:"
+    printf '%s\n' "$bad"
+    echo "[texera-deploy-compose] RESULT: FAIL"
+    exit 1
+  fi
+  loader=$(printf '%s\n' "$rows" | awk -F'|' '$1 == "example-data-loader" { print; exit }')
+  starting=$(printf '%s\n' "$rows" | awk -F'|' '$4 ~ /[Ss]tarting/ || $5 ~ /[Ss]tarting/ { print }')
+  loader_done=0
+  if [[ -n "$loader" ]] && printf '%s\n' "$loader" | awk -F'|' '$2 ~ /exited/ && $3 == "0" { found=1 } END { exit !found }'; then
+    loader_done=1
+  fi
+  if [[ "$loader_done" -eq 1 && -z "$starting" ]]; then
+    break
+  fi
+  if [[ "$SECONDS" -ge "$deadline" ]]; then
+    echo "[texera-deploy-compose] ERROR: examples job or healthchecks did not finish in 600s"
+    echo "[texera-deploy-compose] RESULT: FAIL"
+    exit 1
+  fi
+  echo "[texera-deploy-compose] Waiting for example-data-loader and healthy services"
+  sleep 10
+done
+running=$(docker compose --profile examples ps --status running --format '{{.Service}}' | sed '/^$/d' | wc -l | tr -d ' ')
 echo "[texera-deploy-compose] Running services: $running"
 if [[ "$running" -lt 1 ]]; then
   echo "[texera-deploy-compose] ERROR: no running service"
